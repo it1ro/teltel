@@ -1,0 +1,46 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: teltel-clickhouse
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native interface
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - teltel-network
+
+  teltel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teltel
+    ports:
+      - "8081:8080"
+    environment:
+      - TELTEL_HTTP_PORT=8080
+      - TELTEL_CLICKHOUSE_URL=http://clickhouse:8123
+      - TELTEL_BATCHER_ENABLED=true
+      - TELTEL_BATCHER_BATCH_SIZE=10000
+      - TELTEL_BATCHER_FLUSH_INTERVAL=500ms
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - teltel-network
+
+networks:
+  teltel-network:
+    driver: bridge
