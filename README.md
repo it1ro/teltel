@@ -59,10 +59,16 @@ teltel — это не логгер и не SaaS.
 8. `docs/08-failure-modes.md`
 9. `docs/09-roadmap.md`
 10. `docs/10-engineering-validation.md` (для инженерного тестирования)
-11. `docs/11-phase2-design.md` (проектирование Phase 2)
-12. `docs/12-phase3-cursor-examples.md` (примеры для Cursor, Phase 3)
-13. `docs/PHASE1_FREEZE.md` (заморозка Phase 1)
-14. `docs/PHASE2_FREEZE.md` (заморозка Phase 2)
+11. `docs/ENGINEERING_VALIDATION_GUIDE.md` (руководство по валидации)
+12. `docs/ENGINEERING_VALIDATION_RESULTS.md` (результаты валидации)
+13. `docs/11-phase2-design.md` (проектирование Phase 2)
+14. `docs/12-phase3-cursor-examples.md` (примеры для Cursor, Phase 3)
+15. `docs/PHASE1_FREEZE.md` (заморозка Phase 1)
+16. `docs/PHASE2_FREEZE.md` (заморозка Phase 2)
+17. `docs/PHASE3_FREEZE.md` (заморозка Phase 3)
+
+**Docker окружение:**
+- `DOCKER.md` — полное руководство по использованию Docker окружения
 
 ---
 
@@ -111,6 +117,25 @@ Storage контракты Phase 2 не изменяются. Phase 2 полно
 
 Phase 3 не изменяет контракты Phase 1 и Phase 2. Все данные для анализа загружаются только из ClickHouse.
 
+**Engineering Validation — в процессе** (v0.3.0)
+
+Выполняется валидация системы для подтверждения:
+- соответствия архитектурным принципам
+- корректной деградации под нагрузкой
+- отсутствия каскадных отказов
+- предсказуемого поведения в реальных условиях
+
+Документация:
+- `docs/10-engineering-validation.md` — описание валидации
+- `docs/ENGINEERING_VALIDATION_RESULTS.md` — результаты валидации
+
+Инструменты для валидации находятся в `scripts/`:
+- `validate.sh` — базовая валидация компонентов
+- `load_test.sh` — нагрузочное тестирование
+- `burst_test.sh` — тестирование burst-нагрузок
+- `multi_run_test.sh` — тестирование множественных run'ов
+- `validate_cursor_workflow.sh` — валидация Cursor workflow
+
 ## Быстрый старт
 
 ### Запуск сервера
@@ -132,6 +157,75 @@ go run cmd/teltel/main.go \
 Сервер запустится на порту 8080 (по умолчанию).
 
 **Примечание:** Для работы Analysis API требуется запущенный ClickHouse и включённый Batcher.
+
+### Docker
+
+**Запуск через Docker Compose (рекомендуется для полного стека):**
+
+```bash
+# Сборка образа и запуск стека (teltel + ClickHouse)
+make docker-up
+
+# Или вручную:
+docker-compose up -d
+```
+
+Стек будет доступен на:
+- teltel: http://localhost:8081
+- ClickHouse: http://localhost:8123
+
+**Остановка стека:**
+```bash
+make docker-down
+# Или:
+docker-compose down
+```
+
+**Сборка Docker образа:**
+```bash
+make docker-build
+# Или:
+docker build -t teltel:latest .
+```
+
+**Просмотр логов:**
+```bash
+make docker-logs
+# Или:
+docker-compose logs -f
+```
+
+### Makefile
+
+Проект включает Makefile для стандартизированного управления разработкой и валидацией.
+
+**Основные команды:**
+
+```bash
+# Сборка и запуск
+make build          # Сборка бинаря teltel локально
+make run            # Запуск teltel локально (без Docker)
+make docker-build   # Сборка Docker образа
+make docker-up      # Запуск полного стека (teltel + ClickHouse)
+make docker-down    # Остановка docker-compose окружения
+
+# Валидация
+make validate       # Запуск Engineering Validation локально
+make validate-docker # Запуск валидации против dockerized стека
+
+# Утилиты
+make clean          # Очистка артефактов сборки
+make docker-logs    # Просмотр логов контейнеров
+make docker-shell   # Shell в контейнере teltel
+
+# Разработка
+make test           # Запуск unit тестов
+make lint           # Линтинг кода
+make format         # Форматирование кода
+make help           # Справка по всем командам
+```
+
+Полный список команд доступен через `make help`.
 
 ### Endpoints
 
