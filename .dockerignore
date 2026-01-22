@@ -1,0 +1,56 @@
+# Binaries
+teltel
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Build artifacts
+bin/
+dist/
+
+# Data directories
+data/
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in runtime)
+docs/
+*.md
+!README.md
+
+# Scripts (not needed in runtime)
+scripts/
+
+# IDE
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Test files
+*_test.go
+
+# ADR (Architecture Decision Records)
+ADR/
+
+# Temporary files
+*.tmp
+*.log
