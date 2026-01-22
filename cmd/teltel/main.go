@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -107,9 +108,56 @@ func main() {
 	mux.HandleFunc("/ws", wsHandler.HandleWebSocket)
 
 	// Статические файлы (UI)
+	// #region agent log
+	debugLog := func(data map[string]interface{}) {
+		logEntry := map[string]interface{}{
+			"sessionId":    "debug-session",
+			"runId":        "run1",
+			"timestamp":    time.Now().UnixMilli(),
+			"location":     "main.go:110",
+			"message":      "Static files setup",
+			"data":         data,
+		}
+		if jsonData, err := json.Marshal(logEntry); err == nil {
+			if f, err := os.OpenFile("/home/itiro/dev/teltel/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+				f.WriteString(string(jsonData) + "\n")
+				f.Close()
+			}
+		}
+	}
+	// #endregion
 	webDir := filepath.Join(".", "web")
+	// #region agent log
+	cwd, _ := os.Getwd()
+	webDirAbs, _ := filepath.Abs(webDir)
+	webDirExists := false
+	if info, err := os.Stat(webDir); err == nil {
+		webDirExists = info.IsDir()
+	}
+	debugLog(map[string]interface{}{
+		"hypothesisId": "A",
+		"webDir":       webDir,
+		"webDirAbs":    webDirAbs,
+		"cwd":          cwd,
+		"webDirExists": webDirExists,
+	})
+	// #endregion
 	fs := http.FileServer(http.Dir(webDir))
+	// #region agent log
+	debugLog(map[string]interface{}{
+		"hypothesisId": "B",
+		"fileServerCreated": true,
+		"webDir": webDir,
+	})
+	// #endregion
 	mux.Handle("/", fs)
+	// #region agent log
+	debugLog(map[string]interface{}{
+		"hypothesisId": "C",
+		"routeRegistered": "/",
+		"handlerType": "FileServer",
+	})
+	// #endregion
 
 	// Создание HTTP сервера
 	server := &http.Server{
