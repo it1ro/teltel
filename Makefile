@@ -67,10 +67,39 @@ docker-logs:
 docker-shell:
 	@docker-compose exec teltel /bin/sh
 
-# Run tests (placeholder if no tests exist)
+# Run tests (Docker-only)
 test:
-	@echo "Running tests..."
-	@go test ./... || echo "No tests found or tests failed"
+	@echo "Running tests in Docker..."
+	@docker-compose up -d clickhouse
+	@echo "Waiting for ClickHouse to be ready..."
+	@timeout 60 bash -c 'until docker-compose exec -T clickhouse wget --spider -q http://localhost:8123/ping; do sleep 1; done' || (echo "ClickHouse healthcheck timeout" && exit 1)
+	@EXIT_CODE=0; \
+	docker-compose run --rm test go test ./... || EXIT_CODE=$$?; \
+	docker-compose down; \
+	exit $$EXIT_CODE
+
+# Run tests fast (assumes ClickHouse is already running)
+test-fast:
+	@echo "Running tests in Docker (fast mode)..."
+	@docker-compose run --rm test go test ./...
+
+# Run storage tests only
+test-storage:
+	@echo "Running storage tests in Docker..."
+	@docker-compose up -d clickhouse
+	@echo "Waiting for ClickHouse to be ready..."
+	@timeout 60 bash -c 'until docker-compose exec -T clickhouse wget --spider -q http://localhost:8123/ping; do sleep 1; done' || (echo "ClickHouse healthcheck timeout" && exit 1)
+	@EXIT_CODE=0; \
+	docker-compose run --rm test go test ./internal/storage/... || EXIT_CODE=$$?; \
+	docker-compose down; \
+	exit $$EXIT_CODE
+
+# Clean test artifacts and containers
+test-clean:
+	@echo "Cleaning test artifacts..."
+	@docker-compose down
+	@docker-compose rm -f test 2>/dev/null || true
+	@echo "Test cleanup complete"
 
 # Lint code
 lint:
@@ -108,8 +137,13 @@ help:
 	@echo "  make docker-logs    - View docker-compose logs"
 	@echo "  make docker-shell    - Get shell in teltel container"
 	@echo ""
+	@echo "Testing (Docker-only):"
+	@echo "  make test           - Run all tests in Docker (starts ClickHouse, waits for healthcheck)"
+	@echo "  make test-fast      - Run tests in Docker (assumes ClickHouse is already running)"
+	@echo "  make test-storage   - Run storage tests only in Docker"
+	@echo "  make test-clean     - Clean test containers and artifacts"
+	@echo ""
 	@echo "Development:"
-	@echo "  make test           - Run unit tests"
 	@echo "  make lint           - Lint code (go vet + golangci-lint if available)"
 	@echo "  make format         - Format code (gofmt)"
 	@echo "  make help           - Show this help message"

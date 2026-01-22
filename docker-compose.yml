@@ -41,6 +41,23 @@ services:
     networks:
       - teltel-network
 
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - teltel-network
+    volumes:
+      - .:/app
+      - ./data/clickhouse:/data/clickhouse:ro
+    environment:
+      - CLICKHOUSE_URL=http://clickhouse:8123
+    working_dir: /app
+    command: go test ./...
+
 networks:
   teltel-network:
     driver: bridge
