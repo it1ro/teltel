@@ -147,8 +147,9 @@ make docker-up
 
 ### Endpoints
 
-⚠️ `teltel` **не обслуживает `/` (root path)**.  
-Используйте явные entrypoints.
+**Web UI:**
+- `GET /` или `GET /index.html` — Live UI (графики реального времени)
+- `GET /analysis.html` — Analysis UI (анализ завершённых run'ов)
 
 **Ingest API (Phase 1):**
 - `POST /api/ingest`
@@ -158,7 +159,6 @@ make docker-up
 - `GET /api/runs`
 - `GET /api/run?runId=...`
 - `WS /ws`
-- `GET /live.html`
 
 **Analysis API (Phase 3):**
 - `GET /api/analysis/runs`
@@ -166,7 +166,6 @@ make docker-up
 - `GET /api/analysis/series`
 - `GET /api/analysis/compare`
 - `POST /api/analysis/query`
-- `GET /analysis.html`
 
 ---
 

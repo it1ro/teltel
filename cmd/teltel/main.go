@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +18,44 @@ import (
 	"github.com/teltel/teltel/internal/ingest"
 	"github.com/teltel/teltel/internal/storage"
 )
+
+// findWebDir ищет директорию web/ в нескольких возможных расположениях:
+// 1. Относительно текущей рабочей директории (для локальной разработки)
+// 2. Относительно исполняемого файла (для production)
+// 3. Абсолютный путь /app/web (для Docker)
+func findWebDir() string {
+	candidates := []string{
+		filepath.Join(".", "web"),           // Относительно текущей директории
+		"/app/web",                          // Docker контейнер
+	}
+
+	// Пытаемся найти путь относительно исполняемого файла
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "web"),           // Рядом с исполняемым файлом
+			filepath.Join(filepath.Dir(exeDir), "web"), // На уровень выше
+		)
+	}
+
+	// Проверяем каждый кандидат
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+			// Проверяем, что это действительно директория с файлами
+			if indexFile := filepath.Join(candidate, "index.html"); fileExists(indexFile) {
+				return candidate
+			}
+		}
+	}
+
+	return ""
+}
+
+// fileExists проверяет существование файла
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
 
 func main() {
 	cfg := config.Load()
@@ -108,56 +145,15 @@ func main() {
 	mux.HandleFunc("/ws", wsHandler.HandleWebSocket)
 
 	// Статические файлы (UI)
-	// #region agent log
-	debugLog := func(data map[string]interface{}) {
-		logEntry := map[string]interface{}{
-			"sessionId":    "debug-session",
-			"runId":        "run1",
-			"timestamp":    time.Now().UnixMilli(),
-			"location":     "main.go:110",
-			"message":      "Static files setup",
-			"data":         data,
-		}
-		if jsonData, err := json.Marshal(logEntry); err == nil {
-			if f, err := os.OpenFile("/home/itiro/dev/teltel/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
-				f.WriteString(string(jsonData) + "\n")
-				f.Close()
-			}
-		}
+	// Определяем путь к директории web/ с проверкой нескольких возможных расположений
+	webDir := findWebDir()
+	if webDir == "" {
+		log.Printf("Warning: web/ directory not found. Web UI will not be available.")
+	} else {
+		log.Printf("Serving static files from: %s", webDir)
+		fs := http.FileServer(http.Dir(webDir))
+		mux.Handle("/", fs)
 	}
-	// #endregion
-	webDir := filepath.Join(".", "web")
-	// #region agent log
-	cwd, _ := os.Getwd()
-	webDirAbs, _ := filepath.Abs(webDir)
-	webDirExists := false
-	if info, err := os.Stat(webDir); err == nil {
-		webDirExists = info.IsDir()
-	}
-	debugLog(map[string]interface{}{
-		"hypothesisId": "A",
-		"webDir":       webDir,
-		"webDirAbs":    webDirAbs,
-		"cwd":          cwd,
-		"webDirExists": webDirExists,
-	})
-	// #endregion
-	fs := http.FileServer(http.Dir(webDir))
-	// #region agent log
-	debugLog(map[string]interface{}{
-		"hypothesisId": "B",
-		"fileServerCreated": true,
-		"webDir": webDir,
-	})
-	// #endregion
-	mux.Handle("/", fs)
-	// #region agent log
-	debugLog(map[string]interface{}{
-		"hypothesisId": "C",
-		"routeRegistered": "/",
-		"handlerType": "FileServer",
-	})
-	// #endregion
 
 	// Создание HTTP сервера
 	server := &http.Server{
