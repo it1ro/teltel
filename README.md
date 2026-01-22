@@ -1,12 +1,12 @@
 # teltel
 
-`teltel` — локальный телеметрический сервис для симуляторов
+`teltel` — локальный телеметрический сервис для симуляторов  
 (Flight Engine, Drive Engine, Test Stand).
 
 Цель проекта — предоставить **наблюдаемость, воспроизводимость и анализ**
-для физических симуляций без вмешательства в hot-path движков.
+для физических симуляций без вмешательства в hot‑path движков.
 
-teltel — это не логгер и не SaaS.
+`teltel` — это не логгер и не SaaS.  
 Это инженерный инструмент для отладки, анализа и совместной работы
 (включая AI‑ассистентов).
 
@@ -44,6 +44,33 @@ teltel — это не логгер и не SaaS.
 
 ---
 
+## Как данные попадают в teltel
+
+`teltel` принимает телеметрию от внешних приложений  
+(движков, симуляторов, тестовых стендов)
+через **HTTP NDJSON‑stream**.
+
+- Endpoint:
+  - `POST /api/ingest`
+- Content-Type:
+  - `application/x-ndjson`
+- Каждое событие — **одна строка JSON**
+- События отправляются последовательно, без ожидания ответа
+- Доставка **best‑effort** (без гарантий)
+
+Типовой жизненный цикл данных:
+
+1. Движок открывает HTTP‑соединение с `/api/ingest`
+2. Отправляет событие `run.start`
+3. Отправляет события `telemetry` (обычно по кадрам)
+4. Отправляет событие `run.end`
+5. Соединение закрывается
+
+`teltel` не участвует в логике симуляции  
+и не влияет на выполнение движка.
+
+---
+
 ## Документация
 
 Основная документация находится в `docs/`.
@@ -58,94 +85,42 @@ teltel — это не логгер и не SaaS.
 7. `docs/07-cursor-workflow.md`
 8. `docs/08-failure-modes.md`
 9. `docs/09-roadmap.md`
-10. `docs/10-engineering-validation.md` (для инженерного тестирования)
-11. `docs/ENGINEERING_VALIDATION_GUIDE.md` (руководство по валидации)
-12. `docs/ENGINEERING_VALIDATION_RESULTS.md` (результаты валидации)
-13. `docs/11-phase2-design.md` (проектирование Phase 2)
-14. `docs/12-phase3-cursor-examples.md` (примеры для Cursor, Phase 3)
-15. `docs/PHASE1_FREEZE.md` (заморозка Phase 1)
-16. `docs/PHASE2_FREEZE.md` (заморозка Phase 2)
-17. `docs/PHASE3_FREEZE.md` (заморозка Phase 3)
+10. `docs/10-engineering-validation.md`
+11. `docs/ENGINEERING_VALIDATION_GUIDE.md`
+12. `docs/ENGINEERING_VALIDATION_RESULTS.md`
+13. `docs/11-phase2-design.md`
+14. `docs/12-phase3-cursor-examples.md`
+15. `docs/PHASE1_FREEZE.md`
+16. `docs/PHASE2_FREEZE.md`
+17. `docs/PHASE3_FREEZE.md`
 
 **Docker окружение:**
-- `DOCKER.md` — полное руководство по использованию Docker окружения
+- `DOCKER.md` — руководство по использованию Docker окружения
 
 ---
 
 ## Статус
 
-**Phase 1 — Core Service (MVP) завершена** (v0.1.0)
-
-Реализован работающий локальный сервис с:
-- HTTP ingest для NDJSON событий
-- In-process EventBus с синхронным fan-out
-- Live Buffer с ring buffer per run
-- WebSocket API для live-потока событий
-- Минимальный Live UI с жёстко заданными series
-
-**Phase 1 заморожена** и готова к:
-- Engineering Validation (инженерное тестирование)
-- Phase 2 (Storage & Analysis)
-
-Архитектурные контракты Phase 1 не изменяются.
-
-**Phase 2 — Storage & Analysis завершена** (v0.2.0)
-
-Реализовано:
-- ClickHouse schema для телеметрии (`telemetry_events`, `run_metadata`)
-- Batcher для асинхронной записи событий в ClickHouse
-- SQL helpers для анализа run'ов (series, аномалии, сравнения)
-
-**Phase 2 заморожена** и готова к:
-- Engineering Validation (инженерное тестирование с storage)
-- Phase 3 (UX & Cursor Integration)
-
-Storage контракты Phase 2 не изменяются. Phase 2 полностью изолирована от live-потока.
-
+**Phase 1 — Core Service (MVP) завершена** (v0.1.0)  
+**Phase 2 — Storage & Analysis завершена** (v0.2.0)  
 **Phase 3 — UX & Cursor Integration завершена** (v0.3.0)
 
-Реализовано:
-- Post-run анализ UI поверх ClickHouse
-- HTTP API для анализа завершённых run'ов
-- Визуализация временных рядов, сравнение run'ов
-- Cursor-friendly workflow с воспроизводимыми SQL запросами
-- Документация примеров reasoning для Cursor
-
-**Phase 3 заморожена** и готова к:
-- Engineering Validation (инженерное тестирование с полным стеком)
-- Phase 4 (Extensions, опционально)
-
-Phase 3 не изменяет контракты Phase 1 и Phase 2. Все данные для анализа загружаются только из ClickHouse.
+Все фазы заморожены. Архитектурные контракты не изменяются.
 
 **Engineering Validation — в процессе** (v0.3.0)
 
-Выполняется валидация системы для подтверждения:
-- соответствия архитектурным принципам
-- корректной деградации под нагрузкой
-- отсутствия каскадных отказов
-- предсказуемого поведения в реальных условиях
-
-Документация:
-- `docs/10-engineering-validation.md` — описание валидации
-- `docs/ENGINEERING_VALIDATION_RESULTS.md` — результаты валидации
-
-Инструменты для валидации находятся в `scripts/`:
-- `validate.sh` — базовая валидация компонентов
-- `load_test.sh` — нагрузочное тестирование
-- `burst_test.sh` — тестирование burst-нагрузок
-- `multi_run_test.sh` — тестирование множественных run'ов
-- `validate_cursor_workflow.sh` — валидация Cursor workflow
+---
 
 ## Быстрый старт
 
 ### Запуск сервера
 
-**Базовый запуск (только Phase 1 — live):**
+**Базовый запуск (только live):**
 ```bash
 go run cmd/teltel/main.go
 ```
 
-**С ClickHouse и Batcher (Phase 2/3 — storage и analysis):**
+**С ClickHouse и Batcher (storage + analysis):**
 ```bash
 go run cmd/teltel/main.go \
   -clickhouse-url=http://localhost:8123 \
@@ -154,121 +129,129 @@ go run cmd/teltel/main.go \
   -batcher-flush-interval=500ms
 ```
 
-Сервер запустится на порту 8080 (по умолчанию).
+По умолчанию сервер запускается на порту `8080`.
 
-**Примечание:** Для работы Analysis API требуется запущенный ClickHouse и включённый Batcher.
+---
 
 ### Docker
 
-**Запуск через Docker Compose (рекомендуется для полного стека):**
-
 ```bash
-# Сборка образа и запуск стека (teltel + ClickHouse)
 make docker-up
-
-# Или вручную:
-docker-compose up -d
 ```
 
-Стек будет доступен на:
+Доступ:
 - teltel: http://localhost:8081
 - ClickHouse: http://localhost:8123
 
-**Остановка стека:**
-```bash
-make docker-down
-# Или:
-docker-compose down
-```
-
-**Сборка Docker образа:**
-```bash
-make docker-build
-# Или:
-docker build -t teltel:latest .
-```
-
-**Просмотр логов:**
-```bash
-make docker-logs
-# Или:
-docker-compose logs -f
-```
-
-### Makefile
-
-Проект включает Makefile для стандартизированного управления разработкой и валидацией.
-
-**Основные команды:**
-
-```bash
-# Сборка и запуск
-make build          # Сборка бинаря teltel локально
-make run            # Запуск teltel локально (без Docker)
-make docker-build   # Сборка Docker образа
-make docker-up      # Запуск полного стека (teltel + ClickHouse)
-make docker-down    # Остановка docker-compose окружения
-
-# Валидация
-make validate       # Запуск Engineering Validation локально
-make validate-docker # Запуск валидации против dockerized стека
-
-# Утилиты
-make clean          # Очистка артефактов сборки
-make docker-logs    # Просмотр логов контейнеров
-make docker-shell   # Shell в контейнере teltel
-
-# Разработка
-make test           # Запуск unit тестов
-make lint           # Линтинг кода
-make format         # Форматирование кода
-make help           # Справка по всем командам
-```
-
-Полный список команд доступен через `make help`.
+---
 
 ### Endpoints
 
+⚠️ `teltel` **не обслуживает `/` (root path)**.  
+Используйте явные entrypoints.
+
+**Ingest API (Phase 1):**
+- `POST /api/ingest`
+- `GET /api/health`
+
 **Live API (Phase 1):**
-- `POST /ingest` — приём NDJSON событий от движков
-- `GET /api/runs` — список активных run'ов (из live-буферов)
-- `GET /api/run?runId=...` — метаданные run'а (из live-буферов)
-- `GET /api/health` — health check
-- `WS /ws` — WebSocket для live-потока событий
-- `GET /` — Live UI для визуализации в реальном времени
+- `GET /api/runs`
+- `GET /api/run?runId=...`
+- `WS /ws`
+- `GET /live.html`
 
-**Analysis API (Phase 3, требует ClickHouse):**
-- `GET /api/analysis/runs` — список завершённых run'ов из ClickHouse
-- `GET /api/analysis/run/{runId}` — метаданные run'а из ClickHouse
-- `GET /api/analysis/series` — временной ряд для run'а
-- `GET /api/analysis/compare` — сравнение двух run'ов
-- `POST /api/analysis/query` — выполнение произвольного SELECT запроса
-- `GET /analysis.html` — Post-run Analysis UI
+**Analysis API (Phase 3):**
+- `GET /api/analysis/runs`
+- `GET /api/analysis/run/{runId}`
+- `GET /api/analysis/series`
+- `GET /api/analysis/compare`
+- `POST /api/analysis/query`
+- `GET /analysis.html`
 
-### Пример отправки события
+---
 
-```bash
-curl -X POST http://localhost:8080/ingest \
-  -H "Content-Type: application/x-ndjson" \
-  -d '{"v":1,"runId":"test-run","sourceId":"flight-engine","channel":"physics","type":"body.state","frameIndex":0,"simTime":0.0,"payload":{"body":{"state":{"pos":{"x":0,"y":0,"z":0}}}}}'
+## Пример отправки телеметрии
+
+### Node.js / TypeScript
+
+```ts
+import http from "http";
+
+const req = http.request({
+  hostname: "localhost",
+  port: 8081, // 8080 при локальном запуске
+  path: "/api/ingest",
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-ndjson",
+  },
+});
+
+req.write(JSON.stringify({
+  type: "run.start",
+  runId: "run-123",
+  timestamp: Date.now(),
+}) + "\n");
+
+for (let frame = 1; frame <= 100; frame++) {
+  req.write(JSON.stringify({
+    type: "telemetry",
+    runId: "run-123",
+    frameIndex: frame,
+    sourceId: "flight-engine",
+    payload: {
+      altitude: frame * 10,
+      speed: Math.random() * 5,
+    },
+  }) + "\n");
+}
+
+req.write(JSON.stringify({
+  type: "run.end",
+  runId: "run-123",
+  timestamp: Date.now(),
+}) + "\n");
+
+req.end();
 ```
+
+**Принципы:**
+- best‑effort доставка
+- без retry‑логики
+- без ожидания ответа сервера
+- ошибки доставки не должны влиять на движок
+
+---
+
+## Cursor и анализ данных
+
+`teltel` является источником истины для телеметрии.
+
+При анализе поведения системы рекомендуется:
+- запрашивать реальные данные через `/api/analysis/query`
+- использовать SQL вместо предположений
+- опираться на фактические run'ы и события
+
+Cursor AI рассматривается как полноценный потребитель данных,
+а не как внешний наблюдатель.
+
+---
 
 ## Структура проекта
 
 ```
 teltel/
-├── cmd/teltel/          # Главное приложение
+├── cmd/teltel/
 ├── internal/
-│   ├── event/           # Модель событий и парсинг NDJSON
-│   ├── eventbus/        # In-process EventBus
-│   ├── ingest/          # HTTP ingest handler
-│   ├── buffer/          # Live Buffer (ring buffer per run)
-│   ├── api/             # HTTP и WebSocket API (Phase 1/3)
-│   ├── config/          # Конфигурация
-│   └── storage/         # ClickHouse storage (Phase 2)
-└── web/                 # Frontend
-    ├── index.html       # Live UI (Phase 1)
-    ├── app.js           # Live UI logic
-    ├── analysis.html    # Post-run Analysis UI (Phase 3)
-    └── analysis.js      # Analysis UI logic
-```
+│   ├── event/
+│   ├── eventbus/
+│   ├── ingest/
+│   ├── buffer/
+│   ├── api/
+│   ├── config/
+│   └── storage/
+└── web/
+    ├── live.html
+    ├── app.js
+    ├── analysis.html
+    └── analysis.js
