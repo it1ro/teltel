@@ -16,6 +16,10 @@ type Client interface {
 
 	// InsertBatch вставляет батч событий в формате JSONEachRow
 	InsertBatch(ctx context.Context, table string, data []byte) error
+
+	// Query выполняет SELECT запрос и возвращает результаты в формате JSON.
+	// Возвращает raw JSON (JSONEachRow формат) без парсинга.
+	Query(ctx context.Context, query string) ([]byte, error)
 }
 
 // HTTPClient реализует Client через HTTP API ClickHouse.
@@ -95,4 +99,50 @@ func (c *HTTPClient) InsertBatch(ctx context.Context, table string, data []byte)
 	}
 
 	return nil
+}
+
+// Query выполняет SELECT запрос и возвращает результаты в формате JSON.
+// Использует FORMAT JSONEachRow для получения результатов.
+func (c *HTTPClient) Query(ctx context.Context, query string) ([]byte, error) {
+	// Добавляем FORMAT JSONEachRow к запросу, если его нет
+	queryWithFormat := query
+	if !strings.Contains(strings.ToUpper(query), "FORMAT") {
+		// Убираем точку с запятой в конце, если есть
+		queryWithFormat = strings.TrimSuffix(strings.TrimSpace(query), ";")
+		queryWithFormat += " FORMAT JSONEachRow"
+	}
+
+	// ClickHouse HTTP API: POST /?query=SELECT ... FORMAT JSONEachRow
+	u, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+
+	u.RawQuery = url.Values{
+		"query": []string{queryWithFormat},
+	}.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("clickhouse error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Читаем raw JSON ответ
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	return body, nil
 }

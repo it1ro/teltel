@@ -60,8 +60,9 @@ teltel — это не логгер и не SaaS.
 9. `docs/09-roadmap.md`
 10. `docs/10-engineering-validation.md` (для инженерного тестирования)
 11. `docs/11-phase2-design.md` (проектирование Phase 2)
-12. `docs/PHASE1_FREEZE.md` (заморозка Phase 1)
-13. `docs/PHASE2_FREEZE.md` (заморозка Phase 2)
+12. `docs/12-phase3-cursor-examples.md` (примеры для Cursor, Phase 3)
+13. `docs/PHASE1_FREEZE.md` (заморозка Phase 1)
+14. `docs/PHASE2_FREEZE.md` (заморозка Phase 2)
 
 ---
 
@@ -95,24 +96,60 @@ teltel — это не логгер и не SaaS.
 
 Storage контракты Phase 2 не изменяются. Phase 2 полностью изолирована от live-потока.
 
+**Phase 3 — UX & Cursor Integration завершена** (v0.3.0)
+
+Реализовано:
+- Post-run анализ UI поверх ClickHouse
+- HTTP API для анализа завершённых run'ов
+- Визуализация временных рядов, сравнение run'ов
+- Cursor-friendly workflow с воспроизводимыми SQL запросами
+- Документация примеров reasoning для Cursor
+
+**Phase 3 заморожена** и готова к:
+- Engineering Validation (инженерное тестирование с полным стеком)
+- Phase 4 (Extensions, опционально)
+
+Phase 3 не изменяет контракты Phase 1 и Phase 2. Все данные для анализа загружаются только из ClickHouse.
+
 ## Быстрый старт
 
 ### Запуск сервера
 
+**Базовый запуск (только Phase 1 — live):**
 ```bash
 go run cmd/teltel/main.go
 ```
 
+**С ClickHouse и Batcher (Phase 2/3 — storage и analysis):**
+```bash
+go run cmd/teltel/main.go \
+  -clickhouse-url=http://localhost:8123 \
+  -batcher-enabled=true \
+  -batcher-batch-size=10000 \
+  -batcher-flush-interval=500ms
+```
+
 Сервер запустится на порту 8080 (по умолчанию).
+
+**Примечание:** Для работы Analysis API требуется запущенный ClickHouse и включённый Batcher.
 
 ### Endpoints
 
+**Live API (Phase 1):**
 - `POST /ingest` — приём NDJSON событий от движков
-- `GET /api/runs` — список активных run'ов
-- `GET /api/run?runId=...` — метаданные run'а
+- `GET /api/runs` — список активных run'ов (из live-буферов)
+- `GET /api/run?runId=...` — метаданные run'а (из live-буферов)
 - `GET /api/health` — health check
 - `WS /ws` — WebSocket для live-потока событий
-- `GET /` — Web UI для визуализации
+- `GET /` — Live UI для визуализации в реальном времени
+
+**Analysis API (Phase 3, требует ClickHouse):**
+- `GET /api/analysis/runs` — список завершённых run'ов из ClickHouse
+- `GET /api/analysis/run/{runId}` — метаданные run'а из ClickHouse
+- `GET /api/analysis/series` — временной ряд для run'а
+- `GET /api/analysis/compare` — сравнение двух run'ов
+- `POST /api/analysis/query` — выполнение произвольного SELECT запроса
+- `GET /analysis.html` — Post-run Analysis UI
 
 ### Пример отправки события
 
@@ -132,8 +169,12 @@ teltel/
 │   ├── eventbus/        # In-process EventBus
 │   ├── ingest/          # HTTP ingest handler
 │   ├── buffer/          # Live Buffer (ring buffer per run)
-│   ├── api/             # HTTP и WebSocket API
+│   ├── api/             # HTTP и WebSocket API (Phase 1/3)
 │   ├── config/          # Конфигурация
 │   └── storage/         # ClickHouse storage (Phase 2)
-└── web/                 # Frontend (Live UI)
+└── web/                 # Frontend
+    ├── index.html       # Live UI (Phase 1)
+    ├── app.js           # Live UI logic
+    ├── analysis.html    # Post-run Analysis UI (Phase 3)
+    └── analysis.js      # Analysis UI logic
 ```
