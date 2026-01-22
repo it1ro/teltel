@@ -21,7 +21,7 @@ func NewHandler(bus eventbus.EventBus) *Handler {
 	}
 }
 
-// HandleIngest обрабатывает POST /ingest запрос с NDJSON потоком.
+// HandleIngest обрабатывает POST /api/ingest запрос с NDJSON потоком.
 // Каждая строка обрабатывается независимо.
 // Ошибка в одной строке не ломает обработку остальных.
 func (h *Handler) HandleIngest(w http.ResponseWriter, r *http.Request) {

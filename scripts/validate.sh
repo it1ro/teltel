@@ -55,7 +55,7 @@ echo "=== 2. Ingest (Phase 1) ==="
 TEST_RUN_ID="validation-test-$(date +%s)"
 TEST_EVENT='{"v":1,"runId":"'$TEST_RUN_ID'","sourceId":"test-source","channel":"physics","type":"body.state","frameIndex":0,"simTime":0.0,"payload":{"body":{"state":{"pos":{"x":0,"y":0,"z":0}}}}}'
 
-check "Ingest принимает события" "curl -s -X POST $BASE_URL/ingest -H 'Content-Type: application/x-ndjson' -d '$TEST_EVENT' -w '%{http_code}' | grep -q '202'"
+check "Ingest принимает события" "curl -s -X POST $BASE_URL/api/ingest -H 'Content-Type: application/x-ndjson' -d '$TEST_EVENT' -w '%{http_code}' | grep -q '202'"
 sleep 0.5
 
 check "Run появился в списке" "curl -s $BASE_URL/api/runs | grep -q '$TEST_RUN_ID'"
@@ -109,7 +109,7 @@ echo ""
 # 6. Проверка некорректных событий
 echo "=== 6. Обработка некорректных событий ==="
 INVALID_EVENT='{"invalid":"json"}'
-if curl -s -X POST $BASE_URL/ingest -H 'Content-Type: application/x-ndjson' -d "$INVALID_EVENT" -w '%{http_code}' | grep -q '202'; then
+if curl -s -X POST $BASE_URL/api/ingest -H 'Content-Type: application/x-ndjson' -d "$INVALID_EVENT" -w '%{http_code}' | grep -q '202'; then
     echo -e "${GREEN}✓ Ingest обрабатывает некорректные события gracefully${NC}"
 else
     echo -e "${YELLOW}⚠ Ingest вернул ошибку для некорректного события${NC}"

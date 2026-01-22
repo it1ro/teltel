@@ -41,7 +41,7 @@ for i in $(seq 1 $((RATE * DURATION))); do
 EOF
 )
     
-    curl -s -X POST "$BASE_URL/ingest" \
+    curl -s -X POST "$BASE_URL/api/ingest" \
       -H "Content-Type: application/x-ndjson" \
       -d "$payload" > /dev/null
     

@@ -87,7 +87,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Ingest endpoint
-	mux.HandleFunc("/ingest", ingestHandler.HandleIngest)
+	mux.HandleFunc("/api/ingest", ingestHandler.HandleIngest)
 
 	// API endpoints (Phase 1 - live)
 	mux.HandleFunc("/api/runs", httpHandler.HandleRuns)
@@ -179,7 +179,7 @@ func main() {
 	// Запуск сервера в отдельной goroutine
 	go func() {
 		log.Printf("Starting teltel server on port %d", cfg.HTTPPort)
-		log.Printf("Ingest endpoint: http://localhost:%d/ingest", cfg.HTTPPort)
+		log.Printf("Ingest endpoint: http://localhost:%d/api/ingest", cfg.HTTPPort)
 		log.Printf("Web UI: http://localhost:%d", cfg.HTTPPort)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)

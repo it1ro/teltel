@@ -37,7 +37,7 @@ while true; do
 EOF
 )
         
-        curl -s -X POST "$BASE_URL/ingest" \
+        curl -s -X POST "$BASE_URL/api/ingest" \
           -H "Content-Type: application/x-ndjson" \
           -d "$payload" > /dev/null
         
@@ -70,7 +70,7 @@ EOF
 EOF
 )
         
-        curl -s -X POST "$BASE_URL/ingest" \
+        curl -s -X POST "$BASE_URL/api/ingest" \
           -H "Content-Type: application/x-ndjson" \
           -d "$payload" > /dev/null
         
