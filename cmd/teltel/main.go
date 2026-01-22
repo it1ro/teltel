@@ -16,6 +16,7 @@ import (
 	"github.com/teltel/teltel/internal/config"
 	"github.com/teltel/teltel/internal/eventbus"
 	"github.com/teltel/teltel/internal/ingest"
+	"github.com/teltel/teltel/internal/storage"
 )
 
 func main() {
@@ -42,16 +43,65 @@ func main() {
 	httpHandler := api.NewHTTPHandler(bufferManager)
 	wsHandler := api.NewWSHandler(bus)
 
+	// Опциональная инициализация ClickHouse и Batcher (Phase 2/3)
+	var analysisHandler *api.AnalysisHandler
+	var batcher storage.Batcher
+	if cfg.BatcherEnabled && cfg.ClickHouseURL != "" {
+		// Инициализация ClickHouse client
+		chClient := storage.NewHTTPClient(cfg.ClickHouseURL)
+
+		// Инициализация schema
+		schemaManager := storage.NewSchemaManager(chClient)
+		ctx := context.Background()
+		if err := schemaManager.InitSchema(ctx); err != nil {
+			log.Printf("Warning: Failed to init ClickHouse schema: %v", err)
+			log.Printf("Analysis endpoints will not be available")
+		} else {
+			log.Printf("ClickHouse schema initialized")
+
+			// Создаём Analysis handler
+			analysisHandler = api.NewAnalysisHandler(chClient)
+
+			// Инициализация Batcher (опционально)
+			batcherConfig := storage.BatcherConfig{
+				ClickHouseURL: cfg.ClickHouseURL,
+				BatchSize:     cfg.BatcherBatchSize,
+				FlushInterval: cfg.BatcherFlushInterval,
+				Filter:        eventbus.Filter{}, // все события
+				BufferSize:    8192,
+				Policy:        eventbus.BackpressureBlock,
+				MaxRetries:    3,
+				RetryBackoff:  100 * time.Millisecond,
+			}
+			batcher = storage.NewBatcher(bus, chClient, batcherConfig)
+			if err := batcher.Start(ctx); err != nil {
+				log.Printf("Warning: Failed to start batcher: %v", err)
+			} else {
+				log.Printf("Batcher started")
+			}
+		}
+	}
+
 	// Настройка HTTP роутинга
 	mux := http.NewServeMux()
 
 	// Ingest endpoint
 	mux.HandleFunc("/ingest", ingestHandler.HandleIngest)
 
-	// API endpoints
+	// API endpoints (Phase 1 - live)
 	mux.HandleFunc("/api/runs", httpHandler.HandleRuns)
 	mux.HandleFunc("/api/run", httpHandler.HandleRun)
 	mux.HandleFunc("/api/health", httpHandler.HandleHealth)
+
+	// Analysis API endpoints (Phase 3 - post-run)
+	if analysisHandler != nil {
+		mux.HandleFunc("/api/analysis/runs", analysisHandler.HandleRuns)
+		mux.HandleFunc("/api/analysis/run/", analysisHandler.HandleRun)
+		mux.HandleFunc("/api/analysis/series", analysisHandler.HandleSeries)
+		mux.HandleFunc("/api/analysis/compare", analysisHandler.HandleCompare)
+		mux.HandleFunc("/api/analysis/query", analysisHandler.HandleQuery)
+		log.Printf("Analysis API endpoints registered")
+	}
 
 	// WebSocket endpoint
 	mux.HandleFunc("/ws", wsHandler.HandleWebSocket)
@@ -95,6 +145,14 @@ func main() {
 	// Graceful shutdown с таймаутом
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
+
+	// Остановка Batcher (если был запущен)
+	if batcher != nil {
+		log.Println("Stopping batcher...")
+		if err := batcher.Stop(shutdownCtx); err != nil {
+			log.Printf("Batcher stop error: %v", err)
+		}
+	}
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Server shutdown error: %v", err)
