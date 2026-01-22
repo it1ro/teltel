@@ -64,8 +64,20 @@ teltel — это не логгер и не SaaS.
 
 ## Статус
 
-Проект находится в фазе **Phase 1 — Core Service (MVP)**.
-Реализован работающий локальный сервис с HTTP ingest, EventBus, Live Buffer, WebSocket API и минимальным Live UI.
+**Phase 1 — Core Service (MVP) завершена** (v0.1.0)
+
+Реализован работающий локальный сервис с:
+- HTTP ingest для NDJSON событий
+- In-process EventBus с синхронным fan-out
+- Live Buffer с ring buffer per run
+- WebSocket API для live-потока событий
+- Минимальный Live UI с жёстко заданными series
+
+**Phase 1 заморожена** и готова к:
+- Engineering Validation (инженерное тестирование)
+- Phase 2 (Storage & Analysis)
+
+Архитектурные контракты Phase 1 не изменяются.
 
 ## Быстрый старт
 
