@@ -33,6 +33,7 @@ func (mm *MetadataManager) UpdateFromEvents(ctx context.Context, runID string, e
 	var firstEvent *event.Event // Первое событие для started_at
 	var maxFrameIndex uint32
 	var totalEvents uint64
+	frameIndexSet := make(map[uint32]bool) // Для подсчёта уникальных frame_index
 
 	for _, e := range events {
 		if firstEvent == nil || e.FrameIndex < firstEvent.FrameIndex {
@@ -47,8 +48,12 @@ func (mm *MetadataManager) UpdateFromEvents(ctx context.Context, runID string, e
 		if uint32(e.FrameIndex) > maxFrameIndex {
 			maxFrameIndex = uint32(e.FrameIndex)
 		}
+		frameIndexSet[uint32(e.FrameIndex)] = true
 		totalEvents++
 	}
+
+	// Подсчитываем количество уникальных frame_index
+	totalFrames := uint32(len(frameIndexSet))
 
 	// Извлекаем метаданные из run.start
 	var sourceID string
@@ -117,11 +122,11 @@ func (mm *MetadataManager) UpdateFromEvents(ctx context.Context, runID string, e
 	}
 
 	// Вставляем или обновляем метаданные
-	mm.upsertMetadata(ctx, runID, sourceID, config, engineVersion, seed, tags, status, startedAt, endedAt, durationSeconds, endReason, totalEvents, maxFrameIndex)
+	mm.upsertMetadata(ctx, runID, sourceID, config, engineVersion, seed, tags, status, startedAt, endedAt, durationSeconds, endReason, totalEvents, maxFrameIndex, totalFrames)
 }
 
 // upsertMetadata вставляет или обновляет метаданные run'а.
-func (mm *MetadataManager) upsertMetadata(ctx context.Context, runID, sourceID, config, engineVersion string, seed *uint64, tags, status string, startedAt time.Time, endedAt *time.Time, durationSeconds *float64, endReason *string, totalEvents uint64, maxFrameIndex uint32) {
+func (mm *MetadataManager) upsertMetadata(ctx context.Context, runID, sourceID, config, engineVersion string, seed *uint64, tags, status string, startedAt time.Time, endedAt *time.Time, durationSeconds *float64, endReason *string, totalEvents uint64, maxFrameIndex uint32, totalFrames uint32) {
 	// Для ReplacingMergeTree просто вставляем новую запись
 	// ClickHouse автоматически заменит старую при merge
 
@@ -133,6 +138,7 @@ func (mm *MetadataManager) upsertMetadata(ctx context.Context, runID, sourceID, 
 		"tags":          tags,
 		"status":        status,
 		"total_events":  totalEvents,
+		"total_frames":  totalFrames,
 		"max_frame_index": maxFrameIndex,
 		"updated_at":    time.Now(),
 	}
