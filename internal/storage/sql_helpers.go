@@ -70,7 +70,7 @@ WITH series AS (
   SELECT
     frame_index,
     JSONExtractFloat(payload, '%s') AS value,
-    lagInFrame(JSONExtractFloat(payload, '%s')) OVER (
+    lag(JSONExtractFloat(payload, '%s')) OVER (
       PARTITION BY run_id ORDER BY frame_index
     ) AS prev_value
   FROM telemetry_events
