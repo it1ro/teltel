@@ -59,6 +59,7 @@ teltel — это не логгер и не SaaS.
 8. `docs/08-failure-modes.md`
 9. `docs/09-roadmap.md`
 10. `docs/10-engineering-validation.md` (для инженерного тестирования)
+11. `docs/11-phase2-design.md` (проектирование Phase 2)
 
 ---
 
@@ -78,6 +79,15 @@ teltel — это не логгер и не SaaS.
 - Phase 2 (Storage & Analysis)
 
 Архитектурные контракты Phase 1 не изменяются.
+
+**Phase 2 — Storage & Analysis** (в проектировании)
+
+Проектирование Phase 2 завершено. См. `docs/11-phase2-design.md`:
+- ClickHouse schema для телеметрии
+- Batcher API (EventBus → ClickHouse)
+- SQL helpers для анализа run'ов
+
+Phase 2 не изменяет архитектурные контракты Phase 1 и не затрагивает live-поток.
 
 ## Быстрый старт
 
