@@ -69,38 +69,36 @@
 
 ## Phase 2 — Storage & Analysis
 
-**Статус:** проектирование завершено, реализация планируется
+**Статус:** завершено
 
 Цель:
 > Сделать run'ы анализируемыми после завершения.
 
-### Проектирование
-
-Проектирование Phase 2 завершено. См. `docs/11-phase2-design.md`:
-- ClickHouse schema для телеметрии
-- Batcher API (EventBus → ClickHouse)
-- SQL helpers для анализа run'ов
-
-### Задачи реализации
+### Реализовано
 
 #### 1. ClickHouse schema
-- таблица событий (`telemetry_events`)
-- таблица метаданных run'ов (`run_metadata`)
-- оптимизация ORDER BY
+- ✅ таблица событий (`telemetry_events`)
+- ✅ таблица метаданных run'ов (`run_metadata`)
+- ✅ оптимизация ORDER BY (run_id, frame_index, source_id)
 
 #### 2. Batcher
-- подписка на EventBus
-- batch‑вставки
-- flush‑логика (по размеру, времени, run.end)
+- ✅ подписка на EventBus
+- ✅ batch‑вставки в ClickHouse
+- ✅ flush‑логика (по размеру, времени, run.end)
+- ✅ обновление метаданных run'ов
 
 #### 3. Run lifecycle
-- явное завершение run
-- метаданные run'а
+- ✅ обработка run.start и run.end событий
+- ✅ метаданные run'а в отдельной таблице
 
 #### 4. SQL helpers
-- примеры запросов
-- извлечение series
-- сравнение run'ов
+- ✅ извлечение временных рядов (series)
+- ✅ поиск аномалий (выбросы, скачки, NaN)
+- ✅ сравнение run'ов
+- ✅ агрегации по кадрам
+- ✅ поиск по метаданным и тегам
+
+**Phase 2 заморожена** (v0.2.0). См. `docs/PHASE2_FREEZE.md`.
 
 ---
 

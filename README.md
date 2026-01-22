@@ -60,6 +60,8 @@ teltel — это не логгер и не SaaS.
 9. `docs/09-roadmap.md`
 10. `docs/10-engineering-validation.md` (для инженерного тестирования)
 11. `docs/11-phase2-design.md` (проектирование Phase 2)
+12. `docs/PHASE1_FREEZE.md` (заморозка Phase 1)
+13. `docs/PHASE2_FREEZE.md` (заморозка Phase 2)
 
 ---
 
@@ -80,14 +82,18 @@ teltel — это не логгер и не SaaS.
 
 Архитектурные контракты Phase 1 не изменяются.
 
-**Phase 2 — Storage & Analysis** (в проектировании)
+**Phase 2 — Storage & Analysis завершена** (v0.2.0)
 
-Проектирование Phase 2 завершено. См. `docs/11-phase2-design.md`:
-- ClickHouse schema для телеметрии
-- Batcher API (EventBus → ClickHouse)
-- SQL helpers для анализа run'ов
+Реализовано:
+- ClickHouse schema для телеметрии (`telemetry_events`, `run_metadata`)
+- Batcher для асинхронной записи событий в ClickHouse
+- SQL helpers для анализа run'ов (series, аномалии, сравнения)
 
-Phase 2 не изменяет архитектурные контракты Phase 1 и не затрагивает live-поток.
+**Phase 2 заморожена** и готова к:
+- Engineering Validation (инженерное тестирование с storage)
+- Phase 3 (UX & Cursor Integration)
+
+Storage контракты Phase 2 не изменяются. Phase 2 полностью изолирована от live-потока.
 
 ## Быстрый старт
 
@@ -127,6 +133,7 @@ teltel/
 │   ├── ingest/          # HTTP ingest handler
 │   ├── buffer/          # Live Buffer (ring buffer per run)
 │   ├── api/             # HTTP и WebSocket API
-│   └── config/          # Конфигурация
+│   ├── config/          # Конфигурация
+│   └── storage/         # ClickHouse storage (Phase 2)
 └── web/                 # Frontend (Live UI)
 ```
