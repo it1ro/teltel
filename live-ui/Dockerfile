@@ -26,6 +26,9 @@ RUN npm run build
 # Stage 2: Serve
 FROM nginx:alpine
 
+# Устанавливаем wget для healthcheck
+RUN apk --no-cache add wget
+
 # Копируем собранные файлы из builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 

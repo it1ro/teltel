@@ -41,6 +41,30 @@ services:
     networks:
       - teltel-network
 
+  live-ui:
+    build:
+      context: ./live-ui
+      dockerfile: Dockerfile
+    container_name: teltel-live-ui
+    ports:
+      - "3000:80"
+    environment:
+      # WebSocket URL для браузерных подключений (используется внешний порт backend)
+      - VITE_WS_URL=ws://localhost:8081/ws
+      # VITE_LAYOUT_URL опционально, можно добавить позже
+      # - VITE_LAYOUT_URL=http://localhost:8081/api/layout
+    depends_on:
+      teltel:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - teltel-network
+
   test:
     build:
       context: .
