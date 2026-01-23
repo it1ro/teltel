@@ -272,10 +272,16 @@ const config = {
     regions: {
       // ... описание регионов
     }
+  },
+  charts: {
+    // Опционально: определения графиков
+    // chart_id: ChartSpec
   }
 };
 
 const validated = loadLayout(config);
+// validated.layout - валидированный Layout
+// validated.charts - валидированные ChartSpec (если были указаны)
 ```
 
 ### Валидация
@@ -306,11 +312,32 @@ import { useSharedState, useSharedStateField } from './context/SharedStateContex
 // В компоненте
 const MyComponent = () => {
   // Полный доступ к shared_state
-  const { sharedState, updateTimeCursor, updateSelectedRun } = useSharedState();
+  const { 
+    sharedState, 
+    updateTimeCursor,      // Обновить time_cursor.value
+    updateTimeCursorAxis,   // Обновить time_cursor.axis
+    updateSelectedRun,      // Обновить selected_run
+    updateInteractionState, // Обновить interaction_state (Stage 7.1)
+    updateLiveMode,         // Обновить live_mode (Stage 7.1)
+    updateHoverState,       // Обновить hover_state (Stage 7.1)
+    subscribe               // Подписка на изменения
+  } = useSharedState();
   
-  // Или подписка на конкретное поле
-  const [timeCursor, updateTimeCursor] = useSharedStateField('time_cursor');
-  const [selectedRun, updateSelectedRun] = useSharedStateField('selected_run');
+  // Использование методов напрямую
+  updateTimeCursor(100);  // Установить value
+  updateTimeCursorAxis('simTime');  // Сменить ось
+  updateSelectedRun('run-123', 'user');
+  
+  // Или подписка на конкретное поле (для чтения)
+  const [timeCursor, updateTimeCursorField] = useSharedStateField('time_cursor');
+  const [selectedRun, updateSelectedRunField] = useSharedStateField('selected_run');
+  
+  // updateTimeCursorField принимает полный объект состояния
+  updateTimeCursorField({ 
+    axis: 'frameIndex', 
+    value: 100, 
+    sync_across: ['chart1', 'chart2'] 
+  });
   
   // timeCursor: { axis: 'frameIndex' | 'simTime', value: number | null, sync_across?: string[] }
   // selectedRun: { run_id: string | null, source: string | null }
@@ -329,12 +356,23 @@ import type { ChartSpec } from './types';
 // В компоненте
 const MyComponent = () => {
   // Создание Data Layer
-  const { dataLayer, connectionState, connect } = useDataLayer({
-    autoConnect: true,
-    initialRequest: {
+  const { 
+    dataLayer, 
+    connectionState,  // 'disconnected' | 'connecting' | 'connected' | 'error'
+    connect,          // Подключиться к WebSocket
+    disconnect        // Отключиться от WebSocket
+  } = useDataLayer({
+    autoConnect: true,  // Автоматически подключиться при создании
+    initialRequest: {   // Начальный запрос (если autoConnect: true)
       runId: 'run-123',
       channel: 'flight',
     },
+  });
+
+  // Ручное подключение
+  connect({
+    runId: 'run-123',
+    channel: 'flight',
   });
 
   // Получение данных для графика
@@ -358,12 +396,19 @@ const MyComponent = () => {
       x: { field: 'frameIndex' },
       y: { field: 'payload.altitude' },
     },
+    visual: {
+      mark: 'line',
+      stroke: '#1f77b4',
+      strokeWidth: 2,
+    },
   };
 
   const { series, isLoading, error } = useChartData(chartSpec, dataLayer);
 
   // series: Series[] - готовые данные для визуализации
   // Каждая series содержит points: DataPoint[]
+  // isLoading: boolean - флаг загрузки
+  // error: Error | null - ошибка загрузки данных
 };
 ```
 
@@ -432,6 +477,8 @@ ChartSpec описывает конфигурацию графика:
 Создайте невалидный layout и убедитесь, что UI не стартует:
 
 ```typescript
+import { loadLayout } from './utils/loader';
+
 const invalidLayout = {
   version: '1.0',
   layout_id: 'test',
@@ -447,8 +494,13 @@ const invalidLayout = {
   }
 };
 
-// Должна быть выброшена ошибка
-loadLayout({ layout: invalidLayout });
+// Должна быть выброшена ошибка валидации
+try {
+  loadLayout({ layout: invalidLayout });
+} catch (error) {
+  console.error('Layout validation failed:', error);
+  // UI не стартует с невалидным конфигом
+}
 ```
 
 ## Следующие шаги
