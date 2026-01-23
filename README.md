@@ -111,7 +111,10 @@ make docker-up
 - **ClickHouse** на http://localhost:8123
 - **Live UI v2** на http://localhost:3000 (единственный пользовательский интерфейс)
 
-Подробнее о Docker окружении см. [DOCKER.md](DOCKER.md).
+**Важно:** Live UI v2 является единственным пользовательским интерфейсом проекта. Legacy UI (web/) удалён. Все функции доступны в Live UI v2 на http://localhost:3000.
+
+Подробнее о Docker окружении см. [DOCKER.md](DOCKER.md).  
+Подробнее о миграции см. [docs/UI_MIGRATION.md](docs/UI_MIGRATION.md).
 
 ---
 
