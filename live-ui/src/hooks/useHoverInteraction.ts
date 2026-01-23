@@ -1,6 +1,7 @@
 /**
  * useHoverInteraction - hook для обработки hover-интерактивности на графиках
  * Stage 7.2: Hover & Tooltip Layer
+ * Stage 7.7: Синхронизация hover между графиками
  * 
  * Обрабатывает mouse events (mousemove, mouseleave)
  * Вычисляет ближайшую точку данных
@@ -29,6 +30,10 @@ interface HoverInteractionOptions {
    * Контейнер графика для получения координат мыши
    */
   containerRef: React.RefObject<HTMLDivElement>;
+  /**
+   * Stage 7.7: Синхронизируется ли hover с другими графиками
+   */
+  syncHover?: boolean;
 }
 
 /**
@@ -40,6 +45,7 @@ export const useHoverInteraction = ({
   chartSpec,
   series,
   containerRef,
+  syncHover = false,
 }: HoverInteractionOptions) => {
   const { updateHoverState } = useSharedState();
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);

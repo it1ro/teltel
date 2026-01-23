@@ -9,3 +9,4 @@ export * from './useTimeCursorInteraction';
 export * from './useZoomPanInteraction';
 export * from './useLiveMode';
 export * from './useTimeRange';
+export * from './useChartSync';

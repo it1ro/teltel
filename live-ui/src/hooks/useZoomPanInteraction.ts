@@ -1,6 +1,7 @@
 /**
  * useZoomPanInteraction - hook для обработки zoom и pan интерактивности на графиках
  * Stage 7.4: Zoom & Pan
+ * Stage 7.7: Синхронизация zoom/pan между графиками
  * 
  * Обрабатывает wheel events → zoom по X (и Y, если применимо)
  * Обрабатывает drag (без click на данных) → pan
@@ -33,6 +34,10 @@ interface ZoomPanInteractionOptions {
    * Флаг, указывающий, что drag используется для time_cursor (не для pan)
    */
   isTimeCursorDragging?: boolean;
+  /**
+   * Stage 7.7: Синхронизируется ли zoom/pan с другими графиками
+   */
+  syncZoomPan?: boolean;
 }
 
 /**
@@ -45,6 +50,7 @@ export const useZoomPanInteraction = ({
   series,
   containerRef,
   isTimeCursorDragging = false,
+  syncZoomPan = false,
 }: ZoomPanInteractionOptions) => {
   const { updateInteractionState } = useSharedState();
   const [interactionState] = useSharedStateField('interaction_state');
