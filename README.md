@@ -331,8 +331,15 @@ teltel/
 │   ├── api/
 │   ├── config/
 │   └── storage/
-└── web/
+├── live-ui/              # Live UI сервис (Vite + React + TypeScript)
+│   ├── src/
+│   │   ├── schemas/      # JSON Schema контракты
+│   │   ├── components/   # React компоненты
+│   │   └── utils/        # Loader & Validator
+│   └── package.json
+└── web/                  # Legacy web UI
     ├── live.html
     ├── app.js
     ├── analysis.html
     └── analysis.js
+```
