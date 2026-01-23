@@ -406,21 +406,39 @@ teltel не использует конфигурационные файлы —
 
 ### Запуск Live UI
 
-Live UI может работать в двух режимах:
+Live UI может работать в трёх режимах:
 
-1. **Встроенный в teltel** — статические файлы из `web/` директории
-2. **Отдельный сервис** — Vite dev-сервер для разработки
+1. **Docker (production)** — отдельный сервис в docker-compose (рекомендуется)
+2. **Локальная разработка** — Vite dev-сервер для разработки
+3. **Legacy (встроенный)** — статические файлы из `web/` директории (устаревший)
 
-#### Встроенный режим (production)
+#### Docker режим (production, рекомендуется)
 
-Live UI автоматически доступен через teltel backend:
+Live UI запускается как отдельный сервис в docker-compose:
 
 ```bash
-# После запуска teltel
-open http://localhost:8080
+# Запуск всего стека (teltel + ClickHouse + live-ui)
+make docker-up
+
+# Или через docker-compose
+docker-compose up -d
 ```
 
-#### Отдельный сервис (development)
+**Доступ:** `http://localhost:3000`
+
+**Конфигурация:**
+- WebSocket URL настраивается через переменную окружения `VITE_WS_URL` (по умолчанию: `ws://localhost:8081/ws`)
+- Конфигурация генерируется автоматически при старте контейнера через `docker-entrypoint.sh`
+
+**Преимущества:**
+- ✅ Production-ready сборка (оптимизированный Vite build)
+- ✅ Автоматическая конфигурация через environment variables
+- ✅ Health checks и зависимости между сервисами
+- ✅ Изолированная среда выполнения
+
+#### Локальная разработка (development)
+
+Для разработки и отладки можно запустить Live UI локально:
 
 ```bash
 cd live-ui
@@ -434,19 +452,44 @@ npm run dev
 
 **Доступ:** `http://localhost:3000`
 
-**Примечание:** В dev-режиме Live UI подключается к `ws://localhost:8080/ws` по умолчанию.
+**Конфигурация:**
+- WebSocket URL настраивается через переменную окружения `VITE_WS_URL` (по умолчанию: `ws://localhost:8080/ws`)
+- Можно использовать `.env` файл для настройки:
+  ```bash
+  # .env
+  VITE_WS_URL=ws://localhost:8080/ws
+  ```
+
+**Преимущества:**
+- ✅ Hot-reload для быстрой разработки
+- ✅ Source maps для отладки
+- ✅ Прямой доступ к исходному коду
+
+#### Legacy режим (встроенный, устаревший)
+
+Старый Live UI доступен через teltel backend:
+
+```bash
+# После запуска teltel
+open http://localhost:8080
+```
+
+**Примечание:** Этот режим устарел. Рекомендуется использовать Docker или локальную разработку.
 
 ### Примеры команд запуска
 
 #### Полный стек (Docker)
 
 ```bash
-# 1. Запуск teltel + ClickHouse
+# 1. Запуск всего стека (teltel + ClickHouse + live-ui)
 make docker-up
 
 # 2. Запуск источника телеметрии (например, flight-engine sandbox)
 cd /path/to/flight-engine/sandbox
 npm run sandbox
+
+# 3. Откройте Live UI
+# http://localhost:3000
 ```
 
 #### Локальная разработка
@@ -455,13 +498,17 @@ npm run sandbox
 # Терминал 1: teltel backend
 go run cmd/teltel/main.go
 
-# Терминал 2: Live UI (опционально, для разработки)
+# Терминал 2: Live UI (для разработки)
 cd live-ui
 npm run dev
 
 # Терминал 3: источник телеметрии
 # (ваш симулятор/движок)
+
+# Откройте Live UI: http://localhost:3000
 ```
+
+**Примечание:** В локальной разработке Live UI подключается к `ws://localhost:8080/ws` по умолчанию.
 
 ---
 
@@ -471,9 +518,12 @@ npm run dev
 
 Live UI подключается к teltel backend через **WebSocket**:
 
-- **Endpoint:** `ws://localhost:8080/ws` (по умолчанию)
+- **Endpoint:** 
+  - Docker: `ws://localhost:8081/ws` (внешний порт backend)
+  - Локальная разработка: `ws://localhost:8080/ws` (по умолчанию)
 - **Протокол:** WebSocket с JSON сообщениями
 - **Подписка:** Live UI отправляет запрос на подписку с фильтрами
+- **Конфигурация:** WebSocket URL настраивается через переменную окружения `VITE_WS_URL`
 
 **Пример запроса подписки:**
 ```json
@@ -685,7 +735,10 @@ Time cursor — это вертикальная линия на графиках
 
 **Решение:**
 - Убедитесь, что teltel backend запущен
-- Проверьте URL WebSocket (по умолчанию: `ws://localhost:8080/ws`)
+- Проверьте URL WebSocket:
+  - Docker: `ws://localhost:8081/ws` (внешний порт)
+  - Локальная разработка: `ws://localhost:8080/ws`
+- Проверьте переменную окружения `VITE_WS_URL` (если используется)
 - Проверьте, что порт не заблокирован файрволом
 
 #### Проверка 2: Подписка на события
