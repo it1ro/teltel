@@ -31,3 +31,4 @@ Thumbs.db
 
 # Docker data
 data/
+!live-ui/src/data/
