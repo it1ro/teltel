@@ -247,7 +247,8 @@ export const HistogramChart: React.FC<HistogramChartProps> = ({
     const marginTop = 20;
     const marginBottom = 40;
     const innerWidth = plotRect.width - marginLeft - marginRight;
-    const innerHeight = plotRect.height - marginTop - marginBottom;
+    // innerHeight не используется, но оставляем для будущего использования
+    // const innerHeight = plotRect.height - marginTop - marginBottom;
 
     const cursorX = marginLeft + cursorPosition * innerWidth;
 
@@ -329,7 +330,7 @@ export const HistogramChart: React.FC<HistogramChartProps> = ({
         timeCursorHandlers.onMouseMove(e);
         zoomPanHandlers.onMouseMove(e);
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={(_e) => {
         onMouseLeave();
         timeCursorHandlers.onMouseLeave();
         zoomPanHandlers.onMouseLeave();
@@ -344,7 +345,7 @@ export const HistogramChart: React.FC<HistogramChartProps> = ({
           zoomPanHandlers.onMouseDown(e);
         }
       }}
-      onMouseUp={(e) => {
+      onMouseUp={(_e) => {
         timeCursorHandlers.onMouseUp();
         zoomPanHandlers.onMouseUp();
         isTimeCursorDraggingRef.current = false;

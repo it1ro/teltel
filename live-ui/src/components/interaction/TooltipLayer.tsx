@@ -9,7 +9,6 @@
 
 import React from 'react';
 import { useSharedStateField } from '../../context/SharedStateContext';
-import type { HoverState } from '../../context/SharedStateContext';
 
 interface TooltipLayerProps {
   /**
@@ -36,9 +35,9 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ containerRef }) => {
   const containerRect = container.getBoundingClientRect();
 
   // Извлекаем координаты мыши из hover_state.data
-  const data = hoverState.data as { mouseX?: number; mouseY?: number } | undefined;
-  const mouseX = data?.mouseX ?? containerRect.width / 2;
-  const mouseY = data?.mouseY ?? containerRect.height / 2;
+  const mouseData = hoverState.data as { mouseX?: number; mouseY?: number } | undefined;
+  const mouseX = mouseData?.mouseX ?? containerRect.width / 2;
+  const mouseY = mouseData?.mouseY ?? containerRect.height / 2;
 
   // Позиционируем tooltip рядом с курсором
   // Смещаем tooltip вправо и вверх от курсора

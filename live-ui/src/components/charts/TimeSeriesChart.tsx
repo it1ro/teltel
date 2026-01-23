@@ -5,7 +5,7 @@
  * Stage 7.3: добавлена интерактивность time_cursor через shared_state
  */
 
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import * as Plot from '@observablehq/plot';
 import type { ChartSpec } from '../../types';
 import type { Series } from '../../data/types';
@@ -292,7 +292,8 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     const marginTop = 20;
     const marginBottom = 40;
     const innerWidth = plotRect.width - marginLeft - marginRight;
-    const innerHeight = plotRect.height - marginTop - marginBottom;
+    // innerHeight не используется, но оставляем для будущего использования
+    // const innerHeight = plotRect.height - marginTop - marginBottom;
 
     const cursorX = marginLeft + cursorPosition * innerWidth;
 
@@ -374,7 +375,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         timeCursorHandlers.onMouseMove(e);
         zoomPanHandlers.onMouseMove(e);
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={(_e) => {
         onMouseLeave();
         timeCursorHandlers.onMouseLeave();
         zoomPanHandlers.onMouseLeave();
@@ -389,7 +390,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
           zoomPanHandlers.onMouseDown(e);
         }
       }}
-      onMouseUp={(e) => {
+      onMouseUp={(_e) => {
         timeCursorHandlers.onMouseUp();
         zoomPanHandlers.onMouseUp();
         isTimeCursorDraggingRef.current = false;

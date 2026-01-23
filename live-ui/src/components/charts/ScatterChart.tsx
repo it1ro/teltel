@@ -265,7 +265,8 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
     const marginTop = 20;
     const marginBottom = 40;
     const innerWidth = plotRect.width - marginLeft - marginRight;
-    const innerHeight = plotRect.height - marginTop - marginBottom;
+    // innerHeight не используется, но оставляем для будущего использования
+    // const innerHeight = plotRect.height - marginTop - marginBottom;
 
     const cursorX = marginLeft + cursorPosition * innerWidth;
 
@@ -347,7 +348,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
         timeCursorHandlers.onMouseMove(e);
         zoomPanHandlers.onMouseMove(e);
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={(_e) => {
         onMouseLeave();
         timeCursorHandlers.onMouseLeave();
         zoomPanHandlers.onMouseLeave();
@@ -362,7 +363,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
           zoomPanHandlers.onMouseDown(e);
         }
       }}
-      onMouseUp={(e) => {
+      onMouseUp={(_e) => {
         timeCursorHandlers.onMouseUp();
         zoomPanHandlers.onMouseUp();
         isTimeCursorDraggingRef.current = false;

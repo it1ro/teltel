@@ -552,7 +552,7 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
         timeCursorHandlers.onMouseMove(e);
         zoomPanHandlers.onMouseMove(e);
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={(_e) => {
         onMouseLeave();
         timeCursorHandlers.onMouseLeave();
         zoomPanHandlers.onMouseLeave();
@@ -567,7 +567,7 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
           zoomPanHandlers.onMouseDown(e);
         }
       }}
-      onMouseUp={(e) => {
+      onMouseUp={(_e) => {
         timeCursorHandlers.onMouseUp();
         zoomPanHandlers.onMouseUp();
         isTimeCursorDraggingRef.current = false;
