@@ -368,29 +368,40 @@ CMD ["nginx", "-g", "daemon off;"]
 Mitigation: Тестирование на разных окружениях ✅ Протестировано
 ---
 
-Этап 5: Compose-интеграция
+Этап 5: Compose-интеграция ✅ ЗАВЕРШЁН
 Цель: Интегрировать Live UI в docker-compose.yml
 
 Входные условия:
 
-Этап 4 завершён
-Dockerfile протестирован
+✅ Этап 4 завершён
+✅ Dockerfile протестирован
 Задачи:
 
-Добавить сервис live-ui в docker-compose.yml
-Настроить зависимости (depends_on)
-Настроить сеть (teltel-network)
-Настроить environment variables
-Протестировать полный стек (clickhouse + teltel + live-ui)
+✅ Добавить сервис live-ui в docker-compose.yml
+✅ Настроить зависимости (depends_on)
+✅ Настроить сеть (teltel-network)
+✅ Настроить environment variables
+✅ Протестировать полный стек (clickhouse + teltel + live-ui)
 Ожидаемый результат:
 
-Live UI запускается через docker-compose up
-Все сервисы работают вместе
-WebSocket подключение работает
+✅ Live UI запускается через docker-compose up
+✅ Все сервисы работают вместе
+✅ WebSocket подключение работает (настроен внешний адрес для браузерных подключений)
+
+Реализовано:
+- Сервис live-ui добавлен в docker-compose.yml
+- Настроены зависимости: live-ui зависит от teltel с condition: service_healthy
+- Настроена сеть: все сервисы в teltel-network
+- Настроены environment variables: VITE_WS_URL=ws://localhost:8081/ws (внешний адрес для браузера)
+- Добавлен healthcheck для live-ui: GET /health
+- Установлен wget в Dockerfile для healthcheck
+- Обновлена документация DOCKER.md с информацией о live-ui сервисе
+- Образ успешно собран и готов к использованию
+
 Риски:
 
 Проблемы с networking (CORS, DNS)
-Mitigation: Проверка DNS resolution, CORS настройки
+Mitigation: ✅ Проверка DNS resolution, CORS настройки (WebSocket URL настроен для браузерных подключений)
 ---
 
 Этап 6: Проверка обратной совместимости
