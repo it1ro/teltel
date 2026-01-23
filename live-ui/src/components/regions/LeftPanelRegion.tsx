@@ -5,6 +5,7 @@
 
 import React from 'react';
 import type { LeftPanelRegion as LeftPanelRegionType } from '../../types';
+import { RunList } from '../run/RunList';
 
 interface LeftPanelRegionProps {
   spec: LeftPanelRegionType;
@@ -39,9 +40,25 @@ export const LeftPanelRegion: React.FC<LeftPanelRegionProps> = ({ spec }) => {
           Collapsible
         </div>
       )}
-      {spec.sections?.map((section) => (
-        <SectionPlaceholder key={section.id} section={section} />
-      ))}
+      {spec.sections?.map((section) => {
+        // Этап 8: Отображаем RunList для run_list
+        if (section.type === 'run_list') {
+          const filters = Array.isArray(section.filters)
+            ? undefined
+            : section.filters;
+          return (
+            <RunList
+              key={section.id}
+              id={section.id}
+              filters={filters}
+              showDetails={true}
+            />
+          );
+        }
+
+        // Для остальных секций используем заглушки
+        return <SectionPlaceholder key={section.id} section={section} />;
+      })}
     </div>
   );
 };

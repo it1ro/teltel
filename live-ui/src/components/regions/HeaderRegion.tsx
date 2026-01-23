@@ -9,6 +9,7 @@ import React from 'react';
 import type { HeaderRegion as HeaderRegionType } from '../../types';
 import { LiveControl } from '../interaction/LiveControl';
 import { TimeScrubber } from '../interaction/TimeScrubber';
+import { RunSelector } from '../run/RunSelector';
 
 interface HeaderRegionProps {
   spec: HeaderRegionType;
@@ -38,6 +39,11 @@ export const HeaderRegion: React.FC<HeaderRegionProps> = ({ spec }) => {
         // Stage 7.6: Отображаем TimeScrubber для time_cursor
         if (component.type === 'time_cursor') {
           return <TimeScrubber key={component.id} />;
+        }
+
+        // Этап 8: Отображаем RunSelector для run_selector
+        if (component.type === 'run_selector') {
+          return <RunSelector key={component.id} id={component.id} />;
         }
 
         // Для остальных компонентов используем заглушки
