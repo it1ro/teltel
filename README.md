@@ -215,16 +215,20 @@ make docker-up
 ```
 
 Доступ:
-- teltel: http://localhost:8081
+- teltel backend: http://localhost:8081
 - ClickHouse: http://localhost:8123
+- Live UI: http://localhost:3000
+
+**Примечание:** Live UI v2 теперь запускается как отдельный сервис в Docker. Подробнее см. [DOCKER.md](DOCKER.md).
 
 ---
 
 ### Endpoints
 
 **Web UI:**
-- `GET /` или `GET /index.html` — Live UI (графики реального времени)
-- `GET /analysis.html` — Analysis UI (анализ завершённых run'ов)
+- Live UI v2: http://localhost:3000 (отдельный сервис в Docker)
+- Legacy UI: `GET /` или `GET /index.html` — старый Live UI (графики реального времени)
+- Analysis UI: `GET /analysis.html` — анализ завершённых run'ов
 
 **Ingest API (Phase 1):**
 - `POST /api/ingest`
@@ -266,8 +270,9 @@ make docker-up
    npm run sandbox
    ```
 
-4. **Откройте UI teltel:**
-   - Перейдите на `http://localhost:8081`
+4. **Откройте Live UI:**
+   - Перейдите на `http://localhost:3000` (Live UI v2 как отдельный сервис)
+   - Или `http://localhost:8081` (legacy UI, встроенный в backend)
    - В разделе "Active Runs" вы увидите активный run
    - Кликните на run, чтобы видеть графики в реальном времени
    - Графики обновляются автоматически по мере поступления данных
@@ -411,6 +416,9 @@ teltel/
 │   │   ├── schemas/      # JSON Schema контракты
 │   │   ├── components/   # React компоненты
 │   │   └── utils/        # Loader & Validator
+│   ├── Dockerfile        # Multi-stage build для production
+│   ├── docker-entrypoint.sh  # Runtime конфигурация
+│   ├── nginx.conf        # Nginx конфигурация
 │   └── package.json
 └── web/                  # Legacy web UI
     ├── live.html
