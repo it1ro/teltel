@@ -430,9 +430,36 @@ live-ui/
   - Состояние сохраняется в shared_state.interaction_state
   - Отсутствие конфликтов с time_cursor (pan работает только с правой кнопкой мыши или Ctrl/Cmd)
 
+### Этап 7.5: Live Control (Play/Pause)
+
+- [x] **useLiveMode hook** (`src/hooks/useLiveMode.ts`)
+  - Управление `live_mode.is_playing` через shared_state
+  - Автоматическое обновление `time_cursor.value` при play
+  - Остановка обновлений при pause
+  - Получение последнего frameIndex/simTime из данных через Data Layer
+  - Hook не хранит состояние
+  - Hook использует Data Layer ТОЛЬКО для чтения
+
+- [x] **LiveControl компонент** (`src/components/interaction/LiveControl.tsx`)
+  - Кнопки Play/Pause с визуальными иконками
+  - Визуальный индикатор live-режима (пульсирующая точка)
+  - Компонент читает состояние из shared_state
+  - Компонент вызывает методы useLiveMode
+  - Никакой логики данных внутри компонента
+
+- [x] **Интеграция в HeaderRegion**
+  - LiveControl отображается, если layout содержит `global_controls`
+  - Отсутствие LiveControl не ломает UI
+  - Замена заглушки на реальный компонент
+
+- [x] **Интеграция с time_cursor**
+  - При ручном изменении time_cursor (click/drag) → автоматический pause
+  - При play → time_cursor следует за данными (обновляется каждые 100ms)
+  - При pause → time_cursor фиксируется
+  - Логика реализована в useTimeCursorInteraction
+
 ## 🚫 Что НЕ реализовано (следующие этапы)
 
-- ❌ Live Control (Play/Pause) - Stage 7.5
 - ❌ Manual Time Scrubbing - Stage 7.6
 - ❌ Синхронизация интерактивности между графиками - Stage 7.7
 - ❌ Run Overview / Comparison
@@ -470,6 +497,14 @@ live-ui/
 - ✅ Stage 7.4: Никаких изменений ChartSpec, Data Layer, layout
 - ✅ Stage 7.4: Обратная совместимость с Live UI v1 сохранена
 - ✅ Stage 7.4: Time cursor корректно работает при zoom
+- ✅ Stage 7.5: Play/Pause кнопки управляют live-режимом
+- ✅ Stage 7.5: При play time_cursor автоматически обновляется
+- ✅ Stage 7.5: При pause time_cursor зафиксирован
+- ✅ Stage 7.5: Состояние сохраняется в shared_state
+- ✅ Stage 7.5: При ручном изменении time_cursor автоматически ставится на pause
+- ✅ Stage 7.5: Графики остаются stateless
+- ✅ Stage 7.5: Никаких изменений ChartSpec, Data Layer, layout
+- ✅ Stage 7.5: Обратная совместимость с Live UI v1 сохранена
 
 ## 🧪 Проверка
 
@@ -771,6 +806,45 @@ const MyComponent = () => {
     </div>
   );
 };
+```
+
+### Этап 7.5: Live Control (Play/Pause)
+
+```typescript
+import { useLiveMode } from './hooks/useLiveMode';
+import { LiveControl } from './components/interaction/LiveControl';
+
+// Использование useLiveMode hook
+const MyComponent = () => {
+  const { isPlaying, play, pause, toggle } = useLiveMode();
+
+  // Hook автоматически:
+  // - При isPlaying === true: обновляет time_cursor.value каждые 100ms
+  // - При isPlaying === false: останавливает обновления
+  // - Использует последний frameIndex/simTime из данных через Data Layer
+
+  return (
+    <div>
+      <button onClick={toggle}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+      {isPlaying && <div>Live mode active</div>}
+    </div>
+  );
+};
+
+// LiveControl компонент (используется в HeaderRegion)
+// Автоматически отображается, если layout содержит global_controls
+const HeaderWithLiveControl = () => {
+  // LiveControl автоматически интегрирован в HeaderRegion
+  // Не требует дополнительной настройки
+  return <HeaderRegion spec={headerSpec} />;
+};
+
+// Интеграция с time_cursor
+// При ручном изменении time_cursor (click/drag на графике):
+// - Автоматически ставится на pause, если isPlaying === true
+// - Реализовано в useTimeCursorInteraction hook
 ```
 
 ## 🔗 Ссылки
