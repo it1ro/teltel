@@ -38,20 +38,27 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   allChartIds,
 }) => {
   // Преобразуем Series[] в формат для Observable Plot
+  // Этап 8: Поддержка множественных run'ов с цветовым кодированием
   const plotData = useMemo(() => {
     if (series.length === 0) {
       return [];
     }
 
     // Если несколько series, объединяем их с меткой series id
+    // Извлекаем run_id из series.id (формат: chart_id-run_id)
     if (series.length > 1) {
-      return series.flatMap((s) =>
-        s.points.map((point) => ({
+      return series.flatMap((s) => {
+        // Извлекаем run_id из series.id
+        const runIdMatch = s.id.match(/-([^-]+)$/);
+        const runId = runIdMatch ? runIdMatch[1] : s.id;
+        
+        return s.points.map((point) => ({
           x: point.x,
           y: point.y,
-          series: s.id,
-        }))
-      );
+          series: runId, // Используем run_id для легенды
+          seriesId: s.id, // Сохраняем полный id для внутреннего использования
+        }));
+      });
     }
 
     // Одна series - простой массив точек
@@ -127,7 +134,15 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         grid: yGrid,
         ...(yDomain ? { domain: yDomain } : {}),
       },
-      color: series.length > 1 ? { legend: chartSpec.legend?.show ?? true } : undefined,
+      // Этап 8: Легенда для множественных run'ов
+      color: series.length > 1
+        ? {
+            legend: chartSpec.legend?.show ?? true,
+            label: 'Run',
+            // Используем палитру для цветов run'ов
+            scheme: chartSpec.mappings?.color?.palette || 'category10',
+          }
+        : undefined,
     };
 
     // Добавляем mark в зависимости от типа

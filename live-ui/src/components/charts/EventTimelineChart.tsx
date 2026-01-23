@@ -86,11 +86,16 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
   const [interactionState] = useSharedStateField('interaction_state');
 
   // Извлекаем все события из series
+  // Этап 8: Поддержка множественных run'ов - добавляем run_id к каждому событию
   const events = useMemo(() => {
-    const allEvents: Array<{ event: Event; point: { x: number; y: number } }> = [];
+    const allEvents: Array<{ event: Event; point: { x: number; y: number }; runId: string }> = [];
     for (const s of series) {
+      // Извлекаем run_id из series.id (формат: chart_id-run_id)
+      const runIdMatch = s.id.match(/-([^-]+)$/);
+      const runId = runIdMatch ? runIdMatch[1] : s.id;
+      
       for (const point of s.points) {
-        allEvents.push({ event: point.event, point });
+        allEvents.push({ event: point.event, point, runId });
       }
     }
     return allEvents;
@@ -196,8 +201,23 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
       : d3.scaleLinear().domain([0, 1]).range([innerHeight, 0]);
 
     // Создаём color scale (для event_timeline используется только ordinal)
+    // Этап 8: Если есть множественные run'ы, используем run_id для цветового кодирования
     let colorScale: d3.ScaleOrdinal<string, string> | null = null;
-    if (colorField && colorScaleType === 'ordinal') {
+    const runIds = new Set(events.map((e) => e.runId));
+    const hasMultipleRuns = runIds.size > 1;
+    
+    if (hasMultipleRuns) {
+      // Цветовое кодирование по run_id
+      const runIdArray = Array.from(runIds);
+      colorScale = d3
+        .scaleOrdinal<string>()
+        .domain(runIdArray)
+        .range(
+          colorPalette ||
+            d3.schemeCategory10.slice(0, runIdArray.length)
+        );
+    } else if (colorField && colorScaleType === 'ordinal') {
+      // Обычное цветовое кодирование по type или channel
       const colorValues = new Set<string>();
       for (const e of events) {
         if (colorField === 'type') {
@@ -302,7 +322,7 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
       .attr('class', 'event-marker')
       .attr(
         'transform',
-        (d: { event: Event; point: { x: number; y: number } }) => {
+        (d: { event: Event; point: { x: number; y: number }; runId: string }) => {
           const x = xField === 'frameIndex' 
             ? d.event.frameIndex 
             : xField === 'simTime' 
@@ -322,7 +342,12 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
       );
 
     // Определяем цвет для маркера
-    const getColor = (event: Event): string => {
+    // Этап 8: Поддержка множественных run'ов - используем runId для цветового кодирования
+    const getColor = (event: Event, runId: string): string => {
+      if (hasMultipleRuns && colorScale) {
+        // Цветовое кодирование по run_id
+        return colorScale(runId) || fill;
+      }
       if (colorScale && colorField) {
         if (colorField === 'type') {
           return colorScale(event.type) || fill;
@@ -362,9 +387,10 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
     };
 
     // Рисуем маркеры
-    markers.each(function (this: SVGGElement, d: { event: Event; point: { x: number; y: number } }) {
+    // Этап 8: Поддержка множественных run'ов - передаем runId в getColor
+    markers.each(function (this: SVGGElement, d: { event: Event; point: { x: number; y: number }; runId: string }) {
       const marker = d3.select(this);
-      const color = getColor(d.event);
+      const color = getColor(d.event, d.runId);
       const size = getSize(d.event);
       const shape = getShape(d.event);
 
