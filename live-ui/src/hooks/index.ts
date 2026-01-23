@@ -1,6 +1,7 @@
 /**
- * React Hooks для работы с Data Layer
+ * React Hooks для работы с Data Layer и интерактивностью
  */
 
 export * from './useDataLayer';
 export * from './useChartData';
+export * from './useHoverInteraction';
