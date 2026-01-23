@@ -72,7 +72,8 @@ echo ""
 # 3. Проверка, что SQL из UI копируем
 echo "=== 3. SQL из UI ==="
 echo "Проверка: SQL запросы должны быть видны в UI и копируемы"
-echo -e "${YELLOW}⚠ Требуется ручная проверка в браузере: http://localhost:8080/analysis.html${NC}"
+LIVE_UI_URL="${LIVE_UI_URL:-http://localhost:3000}"
+echo -e "${YELLOW}⚠ Требуется ручная проверка в браузере: $LIVE_UI_URL${NC}"
 echo ""
 
 # 4. Проверка, что только SELECT запросы принимаются
