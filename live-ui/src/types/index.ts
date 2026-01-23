@@ -80,7 +80,7 @@ export interface ChartSpec {
     | 'run_overview'
     | 'run_comparison';
   data_source: {
-    type: 'event_stream' | 'aggregated' | 'derived';
+    type: 'event_stream' | 'aggregated' | 'derived' | 'historical' | 'hybrid';
     run_id?: string | null;
     run_ids?: string[];
     filters?: {
@@ -89,6 +89,9 @@ export interface ChartSpec {
       types?: string[];
       type_prefix?: string | null;
       tags?: Record<string, string>;
+      // Для historical данных
+      sourceId?: string | null;
+      jsonPath?: string | null;
     };
     window?: {
       type: 'frames' | 'time' | 'all';
