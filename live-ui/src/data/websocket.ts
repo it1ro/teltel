@@ -4,6 +4,7 @@
  */
 
 import type { Event, WSRequest } from './types';
+import { getWebSocketUrl } from '../utils/config';
 
 export type WSConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -21,7 +22,7 @@ export interface WSClientOptions {
 }
 
 const DEFAULT_OPTIONS: Required<WSClientOptions> = {
-  url: 'ws://localhost:8080/ws',
+  url: getWebSocketUrl(),
   reconnect: true,
   reconnectDelay: 1000,
   maxReconnectAttempts: 10,

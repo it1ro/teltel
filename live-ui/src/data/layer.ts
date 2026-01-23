@@ -10,6 +10,7 @@ import { WSClient, type WSConnectionState } from './websocket';
 import { LiveBuffer } from './buffer';
 import { getSeries } from './adapter';
 import { getWindowPredicate } from './window';
+import { getWebSocketUrl } from '../utils/config';
 
 export interface DataLayerCallbacks {
   onStateChange?: (state: WSConnectionState) => void;
@@ -28,7 +29,7 @@ export class DataLayer {
     this.buffer = new LiveBuffer();
     this.callbacks = callbacks || {};
 
-    // Создаем WebSocket клиент
+    // Создаем WebSocket клиент с конфигурацией из env vars
     this.wsClient = new WSClient(
       {
         onEvent: (event) => this.handleEvent(event),
@@ -44,6 +45,7 @@ export class DataLayer {
         },
       },
       {
+        url: getWebSocketUrl(),
         reconnect: true,
         reconnectDelay: 1000,
         maxReconnectAttempts: 10,
