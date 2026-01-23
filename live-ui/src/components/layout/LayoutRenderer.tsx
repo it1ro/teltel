@@ -7,13 +7,17 @@ import React from 'react';
 import { HeaderRegion } from '../regions/HeaderRegion';
 import { LeftPanelRegion } from '../regions/LeftPanelRegion';
 import { MainPanelRegion } from '../regions/MainPanelRegion';
-import type { Layout } from '../../types';
+import type { Layout, ChartSpec } from '../../types';
 
 interface LayoutRendererProps {
   layout: Layout;
+  charts?: Record<string, ChartSpec>;
 }
 
-export const LayoutRenderer: React.FC<LayoutRendererProps> = ({ layout }) => {
+export const LayoutRenderer: React.FC<LayoutRendererProps> = ({
+  layout,
+  charts,
+}) => {
   const { regions } = layout;
 
   return (
@@ -45,7 +49,7 @@ export const LayoutRenderer: React.FC<LayoutRendererProps> = ({ layout }) => {
         {/* Main Panel Region */}
         {regions.main_panel && (
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            <MainPanelRegion spec={regions.main_panel} />
+            <MainPanelRegion spec={regions.main_panel} charts={charts} />
           </div>
         )}
       </div>
