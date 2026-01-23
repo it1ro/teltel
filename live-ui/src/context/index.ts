@@ -9,4 +9,7 @@ export {
   type SharedState,
   type TimeCursorState,
   type SelectedRunState,
+  type InteractionState,
+  type LiveModeState,
+  type HoverState,
 } from './SharedStateContext';
