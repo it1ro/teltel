@@ -9,3 +9,4 @@ export * from './buffer';
 export * from './window';
 export * from './adapter';
 export * from './layer';
+export * from './analysis';
