@@ -1,12 +1,15 @@
 /**
  * ScatterChart - компонент для визуализации scatter/phase space графиков
  * Stage 5: только визуализация через Observable Plot, без интерактивности
+ * Stage 7.2: добавлена hover-интерактивность через shared_state
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import * as Plot from '@observablehq/plot';
 import type { ChartSpec } from '../../types';
 import type { Series } from '../../data/types';
+import { useHoverInteraction } from '../../hooks/useHoverInteraction';
+import { TooltipLayer } from '../interaction/TooltipLayer';
 
 interface ScatterChartProps {
   chartSpec: ChartSpec;
@@ -117,6 +120,14 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
 
   // Рендерим график
   const plotRef = React.useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Stage 7.2: hover-интерактивность через shared_state
+  const { onMouseMove, onMouseLeave } = useHoverInteraction({
+    chartSpec,
+    series,
+    containerRef,
+  });
 
   React.useEffect(() => {
     if (!plotRef.current || isLoading || plotData.length === 0) {
@@ -165,12 +176,16 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
 
   return (
     <div
+      ref={containerRef}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
       style={{
         width: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         padding: '16px',
+        position: 'relative',
       }}
     >
       {chartSpec.title && (
@@ -193,6 +208,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
           overflow: 'auto',
         }}
       />
+      <TooltipLayer containerRef={containerRef} />
     </div>
   );
 };
