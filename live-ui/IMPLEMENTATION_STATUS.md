@@ -1,4 +1,4 @@
-# Статус реализации Live UI (Этапы 1-6)
+# Статус реализации Live UI (Этапы 1-6, Stage 7.1)
 
 ## 🎯 Live UI v1 — COMPLETED
 
@@ -21,6 +21,7 @@ Live UI v1 включает:
   - Поддержка time_cursor (axis, value, sync_across)
   - Поддержка selected_run (run_id, source)
   - Система подписок для синхронизации компонентов
+  - **Stage 7.1**: Расширение для интерактивных состояний (interaction_state, live_mode, hover_state)
 
 - **Data Layer (WebSocket + Live Buffer)**
   - WebSocket клиент для подключения к teltel endpoint
@@ -316,11 +317,37 @@ live-ui/
   - Добавлена в package.json
   - Используется только для кастомного рендера event_timeline
 
+### Этап 7.1: Расширение SharedState для интерактивности
+
+- [x] **Расширение SharedState интерфейса** (`src/context/SharedStateContext.tsx`)
+  - Добавлены опциональные поля: `interaction_state`, `live_mode`, `hover_state`
+  - Все новые поля опциональны (обратная совместимость сохранена)
+  - Типизация через TypeScript интерфейсы
+
+- [x] **Методы обновления интерактивных состояний**
+  - `updateInteractionState()` - обновление zoom и pan состояний
+  - `updateLiveMode()` - управление live-режимом (play/pause, playback_speed)
+  - `updateHoverState()` - обновление состояния hover на графиках
+  - Поддержка функциональных обновлений для `interaction_state` и `live_mode`
+
+- [x] **Обновление SharedStateContextValue**
+  - Новые методы добавлены в контекст
+  - Доступны через `useSharedState()` hook
+
+- [x] **Обновление useSharedStateField**
+  - Поддержка новых полей: `interaction_state`, `live_mode`, `hover_state`
+  - Типобезопасность сохранена
+
+- [x] **Обратная совместимость**
+  - Существующие поля не изменены
+  - Новые поля опциональны
+  - Существующий код продолжает работать без изменений
+
 ## 🚫 Что НЕ реализовано (следующие этапы)
 
-- ❌ Пользовательская интерактивность (click, drag, zoom, hover, tooltip)
+- ❌ Пользовательская интерактивность (click, drag, zoom, hover, tooltip) - Stage 7.2-7.7
 - ❌ Run Overview / Comparison
-- ❌ Подключение компонентов к shared_state для синхронизации (будет в следующих этапах)
+- ❌ Визуализация интерактивных состояний (Stage 7.1 ограничение)
 
 ## ✅ Архитектурные ограничения соблюдены
 
@@ -335,7 +362,9 @@ live-ui/
 - ✅ Chart Engine является чистым визуальным слоем
 - ✅ EventTimelineChart использует D3 только для кастомного рендера
 - ✅ Никаких изменений data-layer (Stage 6)
-- ✅ Никаких изменений shared_state (Stage 6)
+- ✅ Stage 7.1: Только расширение shared_state, никакой визуализации
+- ✅ Stage 7.1: Никаких изменений ChartSpec, Data Layer, layout
+- ✅ Stage 7.1: Обратная совместимость с Live UI v1 сохранена
 
 ## 🧪 Проверка
 
@@ -552,6 +581,91 @@ const eventTimelineSpec: ChartSpec = {
 // 2. Определяет тип графика (event_timeline)
 // 3. Делегирует рендер EventTimelineChart
 // 4. EventTimelineChart рендерит через D3 SVG
+```
+
+### Этап 7.1: Расширение SharedState для интерактивности
+
+```typescript
+import { useSharedState, useSharedStateField } from './context/SharedStateContext';
+
+// Использование новых методов обновления
+const MyComponent = () => {
+  const {
+    sharedState,
+    updateInteractionState,
+    updateLiveMode,
+    updateHoverState,
+  } = useSharedState();
+
+  // Обновление interaction_state (zoom и pan)
+  const handleZoom = (xDomain: [number, number], yDomain: [number, number]) => {
+    updateInteractionState({
+      zoom: { x: xDomain, y: yDomain },
+    });
+  };
+
+  // Функциональное обновление interaction_state
+  const handlePan = (deltaX: number, deltaY: number) => {
+    updateInteractionState((prev) => ({
+      ...prev,
+      pan: {
+        x: (prev?.pan?.x || 0) + deltaX,
+        y: (prev?.pan?.y || 0) + deltaY,
+      },
+    }));
+  };
+
+  // Обновление live_mode
+  const handlePlay = () => {
+    updateLiveMode({
+      is_playing: true,
+      playback_speed: 1.0,
+    });
+  };
+
+  const handlePause = () => {
+    updateLiveMode((prev) => ({
+      ...prev,
+      is_playing: false,
+    }));
+  };
+
+  // Обновление hover_state
+  const handleHover = (chartId: string, x: number, y: number, data: unknown) => {
+    updateHoverState({
+      chart_id: chartId,
+      x,
+      y,
+      data,
+    });
+  };
+
+  const handleHoverLeave = () => {
+    updateHoverState(null);
+  };
+
+  // Использование useSharedStateField для подписки на конкретное поле
+  const [hoverState, setHoverState] = useSharedStateField('hover_state');
+  const [liveMode, setLiveMode] = useSharedStateField('live_mode');
+  const [interactionState, setInteractionState] = useSharedStateField('interaction_state');
+
+  // Доступ к состояниям
+  // hoverState: HoverState | null | undefined
+  // liveMode: LiveModeState | undefined
+  // interactionState: InteractionState | undefined
+
+  return (
+    <div>
+      {/* Компонент может использовать новые состояния */}
+      {liveMode?.is_playing && <div>Playing at {liveMode.playback_speed}x</div>}
+      {hoverState && (
+        <div>
+          Hover on {hoverState.chart_id} at ({hoverState.x}, {hoverState.y})
+        </div>
+      )}
+    </div>
+  );
+};
 ```
 
 ## 🔗 Ссылки
