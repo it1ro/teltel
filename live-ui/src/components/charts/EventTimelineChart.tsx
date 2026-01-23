@@ -2,6 +2,7 @@
  * EventTimelineChart - компонент для визуализации дискретных событий на временной оси
  * Stage 6: кастомный рендеринг через D3, без интерактивности
  * Stage 7.2: добавлена hover-интерактивность через shared_state
+ * Stage 7.3: добавлена интерактивность time_cursor через shared_state
  */
 
 import React, { useMemo, useEffect, useRef } from 'react';
@@ -9,6 +10,8 @@ import * as d3 from 'd3';
 import type { ChartSpec } from '../../types';
 import type { Series, Event } from '../../data/types';
 import { useHoverInteraction } from '../../hooks/useHoverInteraction';
+import { useTimeCursorInteraction } from '../../hooks/useTimeCursorInteraction';
+import { useSharedStateField } from '../../context/SharedStateContext';
 import { TooltipLayer } from '../interaction/TooltipLayer';
 
 interface EventTimelineChartProps {
@@ -39,6 +42,16 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
     series,
     containerRef: hoverContainerRef,
   });
+
+  // Stage 7.3: time cursor интерактивность через shared_state
+  const timeCursorHandlers = useTimeCursorInteraction({
+    chartSpec,
+    series,
+    containerRef: hoverContainerRef,
+  });
+
+  // Подписка на time_cursor из shared_state
+  const [timeCursor] = useSharedStateField('time_cursor');
 
   // Извлекаем все события из series
   const events = useMemo(() => {
@@ -410,6 +423,34 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
         .style('font-size', '12px')
         .text(yLabel);
     }
+
+    // Stage 7.3: Рисуем time cursor (вертикальная линия)
+    if (timeCursor?.value !== null && timeCursor?.value !== undefined) {
+      const axis = timeCursor.axis || 'frameIndex';
+      const cursorValue = timeCursor.value;
+
+      // Проверяем, что axis соответствует xField графика
+      // Если axis не соответствует, не отрисовываем курсор
+      if ((axis === 'frameIndex' && xField === 'frameIndex') || 
+          (axis === 'simTime' && xField === 'simTime')) {
+        // Проверяем, что значение в пределах domain
+        if (cursorValue >= xDomain[0] && cursorValue <= xDomain[1]) {
+          const cursorX = xScale(cursorValue);
+          
+          g.append('line')
+            .attr('class', 'time-cursor')
+            .attr('x1', cursorX)
+            .attr('y1', 0)
+            .attr('x2', cursorX)
+            .attr('y2', innerHeight)
+            .attr('stroke', '#ff6b6b')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '4,4')
+            .attr('opacity', 0.8)
+            .style('pointer-events', 'none');
+        }
+      }
+    }
   }, [
     events,
     isLoading,
@@ -433,6 +474,7 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
     yLabel,
     showXGrid,
     showYGrid,
+    timeCursor,
   ]);
 
   if (isLoading) {
@@ -470,8 +512,17 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
   return (
     <div
       ref={hoverContainerRef}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
+      onMouseMove={(e) => {
+        onMouseMove(e);
+        timeCursorHandlers.onMouseMove(e);
+      }}
+      onMouseLeave={(e) => {
+        onMouseLeave();
+        timeCursorHandlers.onMouseLeave();
+      }}
+      onClick={timeCursorHandlers.onClick}
+      onMouseDown={timeCursorHandlers.onMouseDown}
+      onMouseUp={timeCursorHandlers.onMouseUp}
       style={{
         width: '100%',
         height: '100%',
