@@ -171,7 +171,39 @@ make docker-up
 
 ## Пример отправки телеметрии
 
-### Node.js / TypeScript
+### Интеграция с flight-engine sandbox
+
+**Самый простой способ начать наблюдать за данными в реальном времени:**
+
+1. **Запустите teltel:**
+   ```bash
+   make docker-up
+   ```
+
+2. **Настройте sandbox для отправки данных:**
+   ```bash
+   cd /path/to/flight-engine/sandbox
+   echo "VITE_TELTEL_ENABLED=true" > .env
+   ```
+
+3. **Запустите sandbox:**
+   ```bash
+   npm run sandbox
+   ```
+
+4. **Откройте UI teltel:**
+   - Перейдите на `http://localhost:8081`
+   - В разделе "Active Runs" вы увидите активный run
+   - Кликните на run, чтобы видеть графики в реальном времени
+   - Графики обновляются автоматически по мере поступления данных
+
+**Примечание:** После создания `.env` файла необходимо перезапустить dev-сервер Vite.
+
+Подробнее см. [sandbox/README.md](../flight-engine/sandbox/README.md#интеграция-с-teltel).
+
+---
+
+### Node.js / TypeScript (программная отправка)
 
 ```ts
 import http from "http";
