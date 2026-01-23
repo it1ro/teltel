@@ -1,0 +1,249 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Layout Contract",
+  "description": "JSON Schema для декларативного описания структуры Live UI",
+  "version": "1.0",
+  "type": "object",
+  "required": ["version", "layout_id", "regions"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Версия контракта Layout"
+    },
+    "layout_id": {
+      "type": "string",
+      "description": "Уникальный идентификатор layout"
+    },
+    "regions": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/HeaderRegion"
+        },
+        "left_panel": {
+          "$ref": "#/definitions/LeftPanelRegion"
+        },
+        "main_panel": {
+          "$ref": "#/definitions/MainPanelRegion"
+        }
+      },
+      "additionalProperties": false
+    },
+    "shared_state": {
+      "type": "object",
+      "properties": {
+        "time_cursor": {
+          "type": "object",
+          "properties": {
+            "axis": {
+              "type": "string",
+              "enum": ["frameIndex", "simTime"]
+            },
+            "value": {
+              "type": ["number", "null"]
+            },
+            "sync_across": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["axis"],
+          "additionalProperties": false
+        },
+        "selected_run": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": ["string", "null"]
+            },
+            "source": {
+              "type": ["string", "null"]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "HeaderRegion": {
+      "type": "object",
+      "required": ["region"],
+      "properties": {
+        "region": {
+          "type": "string",
+          "const": "header"
+        },
+        "height": {
+          "type": "string",
+          "description": "Высота региона (например, '60px')"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HeaderComponent"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "HeaderComponent": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["run_selector", "time_cursor", "status_indicator", "global_controls"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "shared": {
+          "type": "boolean",
+          "description": "Указывает, что компонент использует shared_state"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LeftPanelRegion": {
+      "type": "object",
+      "required": ["region"],
+      "properties": {
+        "region": {
+          "type": "string",
+          "const": "left_panel"
+        },
+        "width": {
+          "type": "string",
+          "description": "Ширина региона (например, '300px')"
+        },
+        "collapsible": {
+          "type": "boolean",
+          "description": "Можно ли свернуть панель"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LeftPanelSection"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "LeftPanelSection": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["run_list", "filter_panel", "chart_visibility", "series_selector"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "filters": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "source": {
+          "type": "string",
+          "description": "Источник данных (например, 'layout.main_panel.charts')"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MainPanelRegion": {
+      "type": "object",
+      "required": ["region", "layout"],
+      "properties": {
+        "region": {
+          "type": "string",
+          "const": "main_panel"
+        },
+        "layout": {
+          "type": "string",
+          "const": "grid"
+        },
+        "grid_config": {
+          "type": "object",
+          "required": ["columns"],
+          "properties": {
+            "columns": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "rows": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": ["auto"]
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              ]
+            },
+            "gap": {
+              "type": "string",
+              "description": "Отступ между элементами grid (например, '16px')"
+            }
+          },
+          "additionalProperties": false
+        },
+        "charts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChartReference"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ChartReference": {
+      "type": "object",
+      "required": ["chart_id"],
+      "properties": {
+        "chart_id": {
+          "type": "string",
+          "description": "Идентификатор графика, ссылающийся на ChartSpec"
+        },
+        "span": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Размер графика в grid: [columns, rows]"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ChartSpec Contract",
+  "description": "JSON Schema для универсального описания графика",
+  "version": "1.0",
+  "type": "object",
+  "required": ["chart_id", "version", "type"],
+  "properties": {
+    "chart_id": {
+      "type": "string",
+      "description": "Уникальный идентификатор графика"
+    },
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Версия контракта ChartSpec"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "time_series",
+        "multi_axis_time_series",
+        "event_timeline",
+        "scatter",
+        "histogram",
+        "run_overview",
+        "run_comparison"
+      ],
+      "description": "Тип графика"
+    },
+    "data_source": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["event_stream", "aggregated", "derived"]
+        },
+        "run_id": {
+          "type": ["string", "null"]
+        },
+        "run_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Для run_comparison"
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "channel": {
+              "type": ["string", "null"]
+            },
+            "type": {
+              "type": ["string", "null"]
+            },
+            "types": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type_prefix": {
+              "type": ["string", "null"]
+            },
+            "tags": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "window": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["frames", "time", "all"]
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Для type: frames"
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Для type: time (секунды)"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "mappings": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "$ref": "#/definitions/AxisMapping"
+        },
+        "y": {
+          "$ref": "#/definitions/AxisMapping"
+        },
+        "y2": {
+          "$ref": "#/definitions/AxisMapping",
+          "description": "Для multi-axis"
+        },
+        "color": {
+          "$ref": "#/definitions/ColorMapping"
+        },
+        "size": {
+          "$ref": "#/definitions/SizeMapping"
+        },
+        "shape": {
+          "$ref": "#/definitions/ShapeMapping"
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual": {
+      "type": "object",
+      "properties": {
+        "mark": {
+          "type": "string",
+          "enum": ["line", "area", "point", "bar"]
+        },
+        "stroke": {
+          "type": ["string", "null"]
+        },
+        "fill": {
+          "type": ["string", "null"]
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "strokeWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": ["linear", "curve", "step"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SeriesSpec"
+      },
+      "description": "Для multi-series на одном графике"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": ["string", "null"]
+    },
+    "axes": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "$ref": "#/definitions/AxisConfig"
+        },
+        "y": {
+          "$ref": "#/definitions/AxisConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "legend": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean"
+        },
+        "position": {
+          "type": "string",
+          "enum": ["top", "bottom", "left", "right", "none"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AxisMapping": {
+      "type": "object",
+      "required": ["field"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Путь к полю (например, 'frameIndex', 'simTime', 'payload.path')"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["linear", "log"]
+        },
+        "domain": {
+          "type": "array",
+          "items": {
+            "type": ["number", "null"]
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Автоматический domain если null"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ColorMapping": {
+      "type": "object",
+      "required": ["field"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Поле для цвета (channel, type, payload.path)"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["ordinal", "linear", "log"]
+        },
+        "palette": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SizeMapping": {
+      "type": "object",
+      "required": ["field"],
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["linear"]
+        },
+        "range": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "ShapeMapping": {
+      "type": "object",
+      "required": ["field"],
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SeriesSpec": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "data_source": {
+          "type": "object"
+        },
+        "mappings": {
+          "type": "object"
+        },
+        "visual": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AxisConfig": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "grid": {
+          "type": "boolean"
+        },
+        "ticks": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["auto"]
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
