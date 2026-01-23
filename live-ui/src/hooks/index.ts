@@ -4,6 +4,7 @@
 
 export * from './useDataLayer';
 export * from './useChartData';
+export * from './useRuns';
 export * from './useHoverInteraction';
 export * from './useTimeCursorInteraction';
 export * from './useZoomPanInteraction';
