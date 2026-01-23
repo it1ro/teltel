@@ -11,8 +11,9 @@ make docker-up
 ```
 
 Это запустит:
-- **teltel** на http://localhost:8081
+- **teltel** (backend) на http://localhost:8081
 - **ClickHouse** на http://localhost:8123
+- **live-ui** (UI) на http://localhost:3000
 
 ### Остановка стека
 
@@ -27,6 +28,7 @@ make docker-logs
 # Или для конкретного сервиса:
 docker-compose logs -f teltel
 docker-compose logs -f clickhouse
+docker-compose logs -f live-ui
 ```
 
 ## Структура Docker окружения
@@ -34,7 +36,8 @@ docker-compose logs -f clickhouse
 ### Файлы
 
 - `Dockerfile` - multi-stage build для teltel (alpine-based)
-- `docker-compose.yml` - конфигурация стека (teltel + ClickHouse)
+- `live-ui/Dockerfile` - multi-stage build для Live UI (Node.js build + nginx serve)
+- `docker-compose.yml` - конфигурация стека (teltel + ClickHouse + live-ui)
 - `docker-entrypoint.sh` - entrypoint скрипт для преобразования ENV в флаги
 - `.dockerignore` - исключения для Docker build
 
@@ -54,6 +57,14 @@ docker-compose logs -f clickhouse
 - **Health check:** `GET /ping` каждые 10 секунд
 - **Volumes:** `./data/clickhouse` для персистентности данных
 
+#### live-ui
+
+- **Порт:** 3000 (внешний) -> 80 (внутренний)
+- **Образ:** собирается из `live-ui/Dockerfile`
+- **Health check:** `GET /health` каждые 10 секунд
+- **Зависимости:** ожидает готовности teltel
+- **Конфигурация:** WebSocket URL настраивается через `VITE_WS_URL` (по умолчанию `ws://localhost:8081/ws`)
+
 ## Конфигурация через переменные окружения
 
 teltel контейнер поддерживает следующие переменные окружения:
@@ -68,6 +79,15 @@ teltel контейнер поддерживает следующие перем
 - `TELTEL_BUFFER_CLEANUP_INTERVAL` - интервал очистки (по умолчанию 5m)
 
 Переменные автоматически преобразуются в флаги командной строки через `docker-entrypoint.sh`.
+
+#### live-ui
+
+Live UI контейнер поддерживает следующие переменные окружения:
+
+- `VITE_WS_URL` - WebSocket URL для подключения к backend (по умолчанию `ws://localhost:8081/ws`)
+- `VITE_LAYOUT_URL` - URL для загрузки layout из backend (опционально)
+
+Переменные используются для генерации `config.js` через `live-ui/docker-entrypoint.sh` при старте контейнера.
 
 ## Валидация в Docker окружении
 
@@ -112,6 +132,9 @@ docker-compose logs -f teltel
 
 # Только ClickHouse
 docker-compose logs -f clickhouse
+
+# Только Live UI
+docker-compose logs -f live-ui
 ```
 
 ### Проверка состояния
@@ -124,8 +147,9 @@ docker-compose ps
 
 ```bash
 make docker-build
-# Или:
+# Или для конкретного сервиса:
 docker-compose build --no-cache teltel
+docker-compose build --no-cache live-ui
 ```
 
 ## Персистентность данных
@@ -136,7 +160,9 @@ docker-compose build --no-cache teltel
 
 ## Сеть
 
-Сервисы общаются через Docker сеть `teltel-network`. teltel обращается к ClickHouse по имени сервиса: `http://clickhouse:8123`.
+Сервисы общаются через Docker сеть `teltel-network`. 
+- teltel обращается к ClickHouse по имени сервиса: `http://clickhouse:8123`
+- live-ui подключается к teltel через WebSocket по внешнему адресу: `ws://localhost:8081/ws` (для браузерных подключений)
 
 ## Очистка
 
@@ -156,6 +182,7 @@ rm -rf ./data/clickhouse
 
 ```bash
 docker rmi teltel:latest
+docker rmi teltel-live-ui:latest
 docker rmi clickhouse/clickhouse-server:latest
 ```
 
@@ -187,6 +214,26 @@ docker-compose ps
 ```
 
 Убедитесь, что `TELTEL_CLICKHOUSE_URL` установлен в `http://clickhouse:8123` (не `localhost`).
+
+### Live UI не может подключиться к WebSocket
+
+Проверьте, что:
+1. Backend (teltel) запущен и здоров: `docker-compose ps`
+2. WebSocket URL правильно настроен в `VITE_WS_URL` (должен быть внешний адрес для браузера: `ws://localhost:8081/ws`)
+3. Откройте браузерную консоль для проверки ошибок подключения
+
+### Live UI не отображается
+
+Проверьте логи:
+```bash
+docker-compose logs live-ui
+```
+
+Убедитесь, что контейнер запущен и health check проходит:
+```bash
+docker-compose ps
+curl http://localhost:3000/health
+```
 
 ## Отличия от локального запуска
 
