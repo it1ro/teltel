@@ -11,6 +11,7 @@ import type { ChartSpec } from '../../types';
 import type { Series } from '../../data/types';
 import { useHoverInteraction } from '../../hooks/useHoverInteraction';
 import { useTimeCursorInteraction } from '../../hooks/useTimeCursorInteraction';
+import { useZoomPanInteraction } from '../../hooks/useZoomPanInteraction';
 import { useSharedStateField } from '../../context/SharedStateContext';
 import { TooltipLayer } from '../interaction/TooltipLayer';
 
@@ -75,6 +76,32 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   const xGrid = chartSpec.axes?.x?.grid ?? true;
   const yGrid = chartSpec.axes?.y?.grid ?? true;
 
+  // Подписка на interaction_state из shared_state для zoom/pan
+  const [interactionState] = useSharedStateField('interaction_state');
+
+  // Вычисляем domain для X и Y из interaction_state или из данных
+  const xDomain = useMemo(() => {
+    if (interactionState?.zoom?.x) {
+      return interactionState.zoom.x;
+    }
+    if (plotData.length === 0) {
+      return undefined;
+    }
+    const xValues = plotData.map((d) => d.x as number);
+    return [Math.min(...xValues), Math.max(...xValues)] as [number, number];
+  }, [interactionState?.zoom?.x, plotData]);
+
+  const yDomain = useMemo(() => {
+    if (interactionState?.zoom?.y) {
+      return interactionState.zoom.y;
+    }
+    if (plotData.length === 0) {
+      return undefined;
+    }
+    const yValues = plotData.map((d) => d.y as number);
+    return [Math.min(...yValues), Math.max(...yValues)] as [number, number];
+  }, [interactionState?.zoom?.y, plotData]);
+
   // Строим Plot spec
   const plotOptions: Plot.PlotOptions = useMemo(() => {
     const baseOptions: Plot.PlotOptions = {
@@ -86,11 +113,13 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         type: xScale,
         label: xLabel,
         grid: xGrid,
+        ...(xDomain ? { domain: xDomain } : {}),
       },
       y: {
         type: yScale,
         label: yLabel,
         grid: yGrid,
+        ...(yDomain ? { domain: yDomain } : {}),
       },
       color: series.length > 1 ? { legend: chartSpec.legend?.show ?? true } : undefined,
     };
@@ -146,6 +175,8 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     yGrid,
     series.length,
     chartSpec.legend?.show,
+    xDomain,
+    yDomain,
   ]);
 
   // Рендерим график
@@ -165,6 +196,17 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     chartSpec,
     series,
     containerRef,
+  });
+
+  // Отслеживаем, происходит ли time_cursor drag
+  const isTimeCursorDraggingRef = useRef(false);
+
+  // Stage 7.4: zoom/pan интерактивность через shared_state
+  const zoomPanHandlers = useZoomPanInteraction({
+    chartSpec,
+    series,
+    containerRef,
+    isTimeCursorDragging: isTimeCursorDraggingRef.current,
   });
 
   // Подписка на time_cursor из shared_state
@@ -313,14 +355,29 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
       onMouseMove={(e) => {
         onMouseMove(e);
         timeCursorHandlers.onMouseMove(e);
+        zoomPanHandlers.onMouseMove(e);
       }}
       onMouseLeave={(e) => {
         onMouseLeave();
         timeCursorHandlers.onMouseLeave();
+        zoomPanHandlers.onMouseLeave();
       }}
       onClick={timeCursorHandlers.onClick}
-      onMouseDown={timeCursorHandlers.onMouseDown}
-      onMouseUp={timeCursorHandlers.onMouseUp}
+      onMouseDown={(e) => {
+        // Отслеживаем начало time_cursor drag
+        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+          isTimeCursorDraggingRef.current = true;
+          timeCursorHandlers.onMouseDown(e);
+        } else {
+          zoomPanHandlers.onMouseDown(e);
+        }
+      }}
+      onMouseUp={(e) => {
+        timeCursorHandlers.onMouseUp();
+        zoomPanHandlers.onMouseUp();
+        isTimeCursorDraggingRef.current = false;
+      }}
+      onWheel={zoomPanHandlers.onWheel}
       style={{
         width: '100%',
         height: '100%',
