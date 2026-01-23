@@ -68,7 +68,8 @@ live-ui/
 │   │   └── index.ts
 │   ├── utils/                # Утилиты
 │   │   ├── loader.ts         # Загрузка и валидация layout
-│   │   └── validator.ts      # Валидация через AJV
+│   │   ├── validator.ts      # Валидация через AJV
+│   │   └── config.ts         # Конфигурация (env vars, runtime)
 │   ├── components/
 │   │   ├── regions/          # Компоненты регионов
 │   │   │   ├── HeaderRegion.tsx
@@ -111,7 +112,8 @@ live-ui/
 │   ├── App.tsx               # Главный компонент
 │   └── main.tsx              # Точка входа
 ├── public/
-│   └── example-layout.json    # Пример валидного layout
+│   ├── example-layout.json    # Пример валидного layout
+│   └── config.js              # Runtime конфигурация (production)
 ├── index.html                 # HTML шаблон (Vite entry point)
 ├── package.json
 ├── tsconfig.json
@@ -256,6 +258,71 @@ npm run build
 
 # Проверка типов
 npm run type-check
+```
+
+## Конфигурация
+
+Live UI поддерживает конфигурацию через environment variables для настройки подключения к backend.
+
+### Переменные окружения
+
+- **VITE_WS_URL** (опционально) — URL WebSocket endpoint для подключения к backend
+  - По умолчанию: `ws://localhost:8080/ws` (для dev-режима)
+  - Пример: `ws://teltel:8080/ws` (для Docker)
+
+- **VITE_LAYOUT_URL** (опционально) — URL для загрузки layout из backend API
+  - По умолчанию: используется статический файл `/example-layout.json`
+  - Пример: `http://teltel:8080/api/layout`
+
+### Dev-режим
+
+В dev-режиме (`npm run dev`) переменные окружения можно задать через `.env` файл:
+
+```bash
+# .env
+VITE_WS_URL=ws://localhost:8080/ws
+VITE_LAYOUT_URL=http://localhost:8080/api/layout
+```
+
+Если переменные не заданы, используется fallback `ws://localhost:8080/ws`.
+
+### Production (Docker)
+
+В production режиме конфигурация поддерживается двумя способами:
+
+1. **Build-time конфигурация** (через Vite env vars):
+   - Переменные `VITE_*` инжектируются на этапе сборки
+   - Используется в Dockerfile при `npm run build`
+
+2. **Runtime конфигурация** (через `config.js`):
+   - Файл `public/config.js` загружается перед React
+   - Устанавливает `window.__ENV__` с конфигурацией
+   - В production может быть заменен через nginx template или генерироваться динамически
+
+Приоритет конфигурации:
+1. `window.__ENV__.VITE_WS_URL` (runtime, production)
+2. `import.meta.env.VITE_WS_URL` (build-time, Vite)
+3. `ws://localhost:8080/ws` (fallback для dev)
+
+### Пример конфигурации для Docker
+
+```yaml
+# docker-compose.yml
+services:
+  live-ui:
+    environment:
+      - VITE_WS_URL=ws://teltel:8080/ws
+      - VITE_LAYOUT_URL=http://teltel:8080/api/layout
+```
+
+Или через runtime конфигурацию (config.js):
+
+```javascript
+// public/config.js (в production может генерироваться динамически)
+window.__ENV__ = {
+  VITE_WS_URL: 'ws://teltel:8080/ws',
+  VITE_LAYOUT_URL: 'http://teltel:8080/api/layout'
+};
 ```
 
 ## Использование
