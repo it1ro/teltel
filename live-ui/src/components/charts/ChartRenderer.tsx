@@ -3,6 +3,7 @@
  * Принимает ChartSpec и делегирует рендер соответствующему компоненту
  * Stage 6: поддерживает time_series, scatter, histogram, event_timeline
  * Только визуализация, без интерактивности
+ * Stage 7.2: TooltipLayer рендерится внутри графиков
  */
 
 import React from 'react';
@@ -21,6 +22,7 @@ interface ChartRendererProps {
 /**
  * ChartRenderer определяет тип графика и делегирует рендер соответствующему компоненту
  * Не содержит логики визуализации
+ * Stage 7.2: графики рендерят TooltipLayer внутри себя
  */
 export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
   // Получаем Data Layer из контекста
@@ -54,6 +56,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
   }
 
   // Определяем тип графика и делегируем рендер
+  // Stage 7.2: графики рендерят TooltipLayer внутри себя
   switch (chartSpec.type) {
     case 'time_series':
       return (
