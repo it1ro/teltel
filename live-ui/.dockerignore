@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+# package-lock.json нужен для npm ci, не исключаем
+
+# Build output (будет создан в контейнере)
+dist
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation (не нужна в production)
+*.md
+!README.md
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Source maps (опционально, можно оставить для debugging)
+# *.map
+
+# Temporary files
+*.tmp
+*.log
