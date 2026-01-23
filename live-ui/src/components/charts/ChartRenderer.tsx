@@ -1,7 +1,8 @@
 /**
  * ChartRenderer - главный компонент для рендеринга графиков
  * Принимает ChartSpec и делегирует рендер соответствующему компоненту
- * Stage 5: только визуализация, без интерактивности
+ * Stage 6: поддерживает time_series, scatter, histogram, event_timeline
+ * Только визуализация, без интерактивности
  */
 
 import React from 'react';
@@ -9,6 +10,7 @@ import type { ChartSpec } from '../../types';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import { ScatterChart } from './ScatterChart';
 import { HistogramChart } from './HistogramChart';
+import { EventTimelineChart } from './EventTimelineChart';
 import { useChartData } from '../../hooks/useChartData';
 import { useDataLayerContext } from '../../context/DataLayerContext';
 
@@ -80,9 +82,17 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
         />
       );
 
-    // Неподдерживаемые типы для Stage 5
-    case 'multi_axis_time_series':
     case 'event_timeline':
+      return (
+        <EventTimelineChart
+          chartSpec={chartSpec}
+          series={series}
+          isLoading={isLoading}
+        />
+      );
+
+    // Неподдерживаемые типы для Stage 6
+    case 'multi_axis_time_series':
     case 'run_overview':
     case 'run_comparison':
       return (
@@ -99,7 +109,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
         >
           <div>
             <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-              Chart type not supported in Stage 5
+              Chart type not supported in Stage 6
             </div>
             <div style={{ fontSize: '14px' }}>
               Type: {chartSpec.type}
