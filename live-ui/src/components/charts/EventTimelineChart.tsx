@@ -11,6 +11,7 @@ import type { ChartSpec } from '../../types';
 import type { Series, Event } from '../../data/types';
 import { useHoverInteraction } from '../../hooks/useHoverInteraction';
 import { useTimeCursorInteraction } from '../../hooks/useTimeCursorInteraction';
+import { useZoomPanInteraction } from '../../hooks/useZoomPanInteraction';
 import { useSharedStateField } from '../../context/SharedStateContext';
 import { TooltipLayer } from '../interaction/TooltipLayer';
 
@@ -50,8 +51,22 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
     containerRef: hoverContainerRef,
   });
 
+  // Отслеживаем, происходит ли time_cursor drag
+  const isTimeCursorDraggingRef = useRef(false);
+
+  // Stage 7.4: zoom/pan интерактивность через shared_state
+  const zoomPanHandlers = useZoomPanInteraction({
+    chartSpec,
+    series,
+    containerRef: hoverContainerRef,
+    isTimeCursorDragging: isTimeCursorDraggingRef.current,
+  });
+
   // Подписка на time_cursor из shared_state
   const [timeCursor] = useSharedStateField('time_cursor');
+
+  // Подписка на interaction_state из shared_state для zoom/pan
+  const [interactionState] = useSharedStateField('interaction_state');
 
   // Извлекаем все события из series
   const events = useMemo(() => {
@@ -143,10 +158,12 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
     }
 
     // Создаём X scale
-    const xDomain: [number, number] = [
+    // Используем domain из interaction_state или вычисляем из данных
+    const dataXDomain: [number, number] = [
       Math.min(...xValues),
       Math.max(...xValues),
     ];
+    const xDomain: [number, number] = interactionState?.zoom?.x || dataXDomain;
     const xScale =
       xScaleType === 'log'
         ? d3.scaleLog().domain(xDomain).range([0, innerWidth])
@@ -475,6 +492,7 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
     showXGrid,
     showYGrid,
     timeCursor,
+    interactionState,
   ]);
 
   if (isLoading) {
@@ -515,14 +533,29 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
       onMouseMove={(e) => {
         onMouseMove(e);
         timeCursorHandlers.onMouseMove(e);
+        zoomPanHandlers.onMouseMove(e);
       }}
       onMouseLeave={(e) => {
         onMouseLeave();
         timeCursorHandlers.onMouseLeave();
+        zoomPanHandlers.onMouseLeave();
       }}
       onClick={timeCursorHandlers.onClick}
-      onMouseDown={timeCursorHandlers.onMouseDown}
-      onMouseUp={timeCursorHandlers.onMouseUp}
+      onMouseDown={(e) => {
+        // Отслеживаем начало time_cursor drag
+        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+          isTimeCursorDraggingRef.current = true;
+          timeCursorHandlers.onMouseDown(e);
+        } else {
+          zoomPanHandlers.onMouseDown(e);
+        }
+      }}
+      onMouseUp={(e) => {
+        timeCursorHandlers.onMouseUp();
+        zoomPanHandlers.onMouseUp();
+        isTimeCursorDraggingRef.current = false;
+      }}
+      onWheel={zoomPanHandlers.onWheel}
       style={{
         width: '100%',
         height: '100%',
