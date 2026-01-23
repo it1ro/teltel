@@ -111,6 +111,38 @@
 
 ---
 
+## Live UI v1 — Architecture Freeze
+
+**Live UI v1 завершена и зафиксирована.**
+
+Live UI v1 предоставляет декларативную систему визуализации телеметрии в реальном времени для teltel. Архитектура версии заморожена и не подлежит изменениям.
+
+### Что входит в Live UI v1
+
+- **Декларативный Layout (JSON Schema v1.0)** — полная структура UI определяется через JSON-конфигурацию
+- **Универсальный ChartSpec (JSON Schema v1.0)** — единая модель описания графиков всех типов
+- **Shared State Engine** — централизованное управление состоянием (time_cursor, selected_run)
+- **Data Layer** — WebSocket подключение, Live Buffer, Window Logic, Data Adapter
+- **Chart Engine** — визуализация через Observable Plot (time_series, scatter, histogram)
+- **Event Timeline** — визуализация дискретных событий через D3
+
+### Что осознанно не входит в Live UI v1
+
+- ❌ **Пользовательская интерактивность** — click, drag, zoom, hover, tooltip (планируется в следующих версиях)
+- ❌ **Analysis UI** — анализ завершённых run'ов (реализован отдельно в `analysis.html`)
+- ❌ **Run Overview / Comparison** — сравнение нескольких run'ов (планируется в следующих версиях)
+
+### Архитектурные границы
+
+- Layout и ChartSpec иммутабельны во время работы
+- Chart Engine является чистым визуальным слоем (не знает про WebSocket и shared_state)
+- Data Layer изолирован от UI и визуализации
+- Строгое соответствие архитектурному документу `LIVE_UI_ARCHITECTURE_DESIGN.md`
+
+Подробнее о реализации см. `live-ui/IMPLEMENTATION_STATUS.md`.
+
+---
+
 ## Быстрый старт
 
 ### Запуск сервера
