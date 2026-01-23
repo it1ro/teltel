@@ -32,7 +32,7 @@ interface RunListProps {
  * При клике на run обновляет shared_state.selected_run
  */
 export const RunList: React.FC<RunListProps> = ({
-  id,
+  id: _id,
   filters,
   showDetails = false,
 }) => {

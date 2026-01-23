@@ -4,7 +4,7 @@
  * Этап 8: UI компоненты для управления run'ами
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useSharedState } from '../../context/SharedStateContext';
 import { useRuns } from '../../hooks/useRuns';
 
@@ -36,7 +36,7 @@ interface RunSelectorProps {
  * При выборе обновляет shared_state.selected_run или selected_runs
  */
 export const RunSelector: React.FC<RunSelectorProps> = ({
-  id,
+  id: _id,
   multiple = false,
   maxSelection = 2,
   filters,

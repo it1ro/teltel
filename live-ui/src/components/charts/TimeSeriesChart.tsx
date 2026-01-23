@@ -136,12 +136,20 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
       },
       // Этап 8: Легенда для множественных run'ов
       color: series.length > 1
-        ? {
-            legend: chartSpec.legend?.show ?? true,
-            label: 'Run',
-            // Используем палитру для цветов run'ов
-            scheme: chartSpec.mappings?.color?.palette || 'category10',
-          }
+        ? (() => {
+            const palette = chartSpec.mappings?.color?.palette;
+            const colorScaleConfig: Plot.ScaleOptions = {
+              legend: chartSpec.legend?.show ?? true,
+              label: 'Run',
+            };
+            // Если palette - массив, используем range; иначе - scheme с дефолтным значением
+            if (Array.isArray(palette)) {
+              colorScaleConfig.range = palette;
+            } else {
+              colorScaleConfig.scheme = 'category10';
+            }
+            return colorScaleConfig;
+          })()
         : undefined,
     };
 
