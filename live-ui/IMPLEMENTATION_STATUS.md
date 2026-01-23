@@ -458,9 +458,35 @@ live-ui/
   - При pause → time_cursor фиксируется
   - Логика реализована в useTimeCursorInteraction
 
+### Этап 7.6: Manual Time Scrubbing
+
+- [x] **TimeScrubber компонент** (`src/components/interaction/TimeScrubber.tsx`)
+  - Slider для выбора времени
+  - Отображение текущего frameIndex/simTime
+  - Отображение min/max диапазона
+  - Компонент читает состояние из shared_state
+  - Компонент обновляет time_cursor.value
+  - При scrubbing автоматически ставит live_mode.is_playing = false
+  - Никакой логики данных внутри компонента
+
+- [x] **useTimeRange hook** (`src/hooks/useTimeRange.ts`)
+  - Получение min/max frameIndex или simTime из Data Layer
+  - Учитывается selected_run
+  - Диапазон обновляется при смене run
+  - Отсутствие данных не ломает UI
+
+- [x] **Интеграция с live_mode**
+  - При ручном scrubbing → live_mode.is_playing = false
+  - При play → slider следует за time_cursor
+  - При pause → slider фиксируется
+
+- [x] **Интеграция в HeaderRegion**
+  - TimeScrubber отображается, если layout содержит time_cursor компонент
+  - Отсутствие TimeScrubber не ломает UI
+  - Замена заглушки на реальный компонент
+
 ## 🚫 Что НЕ реализовано (следующие этапы)
 
-- ❌ Manual Time Scrubbing - Stage 7.6
 - ❌ Синхронизация интерактивности между графиками - Stage 7.7
 - ❌ Run Overview / Comparison
 
@@ -505,6 +531,14 @@ live-ui/
 - ✅ Stage 7.5: Графики остаются stateless
 - ✅ Stage 7.5: Никаких изменений ChartSpec, Data Layer, layout
 - ✅ Stage 7.5: Обратная совместимость с Live UI v1 сохранена
+- ✅ Stage 7.6: TimeScrubber корректно управляет time_cursor
+- ✅ Stage 7.6: Диапазон времени определяется из данных
+- ✅ Stage 7.6: Scrubbing автоматически ставит live-режим на pause
+- ✅ Stage 7.6: При play slider следует за временем
+- ✅ Stage 7.6: Состояние хранится в shared_state
+- ✅ Stage 7.6: Графики остаются stateless
+- ✅ Stage 7.6: Никаких изменений ChartSpec, Data Layer, layout
+- ✅ Stage 7.6: Обратная совместимость с Live UI v1 сохранена
 
 ## 🧪 Проверка
 
@@ -845,6 +879,48 @@ const HeaderWithLiveControl = () => {
 // При ручном изменении time_cursor (click/drag на графике):
 // - Автоматически ставится на pause, если isPlaying === true
 // - Реализовано в useTimeCursorInteraction hook
+```
+
+### Этап 7.6: Manual Time Scrubbing
+
+```typescript
+import { TimeScrubber } from './components/interaction/TimeScrubber';
+import { useTimeRange } from './hooks/useTimeRange';
+
+// TimeScrubber компонент (используется в HeaderRegion)
+// Автоматически отображается, если layout содержит time_cursor компонент
+const HeaderWithTimeScrubber = () => {
+  // TimeScrubber автоматически интегрирован в HeaderRegion
+  // Не требует дополнительной настройки
+  return <HeaderRegion spec={headerSpec} />;
+};
+
+// Использование useTimeRange hook для получения диапазона времени
+const MyComponent = () => {
+  const timeRange = useTimeRange();
+  
+  // timeRange: { min: number, max: number } | null
+  // Диапазон определяется из данных для selected_run
+  // Учитывается axis (frameIndex или simTime)
+  
+  if (!timeRange) {
+    return <div>No data available</div>;
+  }
+  
+  return (
+    <div>
+      Range: {timeRange.min} - {timeRange.max}
+    </div>
+  );
+};
+
+// Интеграция с live_mode
+// При ручном scrubbing (изменение slider):
+// - Автоматически ставится на pause, если isPlaying === true
+// - Реализовано в TimeScrubber компоненте
+// При play:
+// - Slider автоматически следует за time_cursor.value
+// - Обновление происходит через shared_state
 ```
 
 ## 🔗 Ссылки
