@@ -46,11 +46,11 @@ interface ZoomPanInteractionOptions {
  * @returns объект с обработчиками onWheel, onMouseDown, onMouseMove, onMouseUp
  */
 export const useZoomPanInteraction = ({
-  chartSpec,
+  chartSpec: _chartSpec,
   series,
   containerRef,
   isTimeCursorDragging = false,
-  syncZoomPan = false,
+  syncZoomPan: _syncZoomPan = false,
 }: ZoomPanInteractionOptions) => {
   const { updateInteractionState } = useSharedState();
   const [interactionState] = useSharedStateField('interaction_state');
@@ -295,13 +295,14 @@ export const useZoomPanInteraction = ({
 
       const container = containerRef.current;
       const containerRect = container.getBoundingClientRect();
+      const panStart = panStartRef.current; // Сохраняем для TypeScript
       
       const mouseX = event.clientX - containerRect.left;
       const mouseY = event.clientY - containerRect.top;
 
       // Вычисляем смещение в пикселях
-      const deltaX = mouseX - panStartRef.current.x;
-      const deltaY = mouseY - panStartRef.current.y;
+      const deltaX = mouseX - panStart.x;
+      const deltaY = mouseY - panStart.y;
 
       // Определяем margins
       const marginLeft = 60;
@@ -312,17 +313,17 @@ export const useZoomPanInteraction = ({
       const innerHeight = containerRect.height - marginTop - marginBottom;
 
       // Преобразуем смещение в пикселях в смещение в domain координатах
-      const xRange = panStartRef.current.domainX[1] - panStartRef.current.domainX[0];
-      const yRange = panStartRef.current.domainY[1] - panStartRef.current.domainY[0];
+      const xRange = panStart.domainX[1] - panStart.domainX[0];
+      const yRange = panStart.domainY[1] - panStart.domainY[0];
 
       const deltaXInDomain = -(deltaX / innerWidth) * xRange; // Инвертируем для pan
       const deltaYInDomain = (deltaY / innerHeight) * yRange; // Y инвертирован
 
       // Вычисляем новый domain
-      let newXMin = panStartRef.current.domainX[0] + deltaXInDomain;
-      let newXMax = panStartRef.current.domainX[1] + deltaXInDomain;
-      let newYMin = panStartRef.current.domainY[0] + deltaYInDomain;
-      let newYMax = panStartRef.current.domainY[1] + deltaYInDomain;
+      let newXMin = panStart.domainX[0] + deltaXInDomain;
+      let newXMax = panStart.domainX[1] + deltaXInDomain;
+      let newYMin = panStart.domainY[0] + deltaYInDomain;
+      let newYMax = panStart.domainY[1] + deltaYInDomain;
 
       // Ограничиваем pan границами данных
       const xValues: number[] = [];
@@ -367,7 +368,7 @@ export const useZoomPanInteraction = ({
         ...prev,
         zoom: {
           x: [newXMin, newXMax],
-          ...(panStartRef.current.domainY ? { y: [newYMin, newYMax] } : {}),
+          ...(panStart.domainY ? { y: [newYMin, newYMax] } : {}),
         },
       }));
     },

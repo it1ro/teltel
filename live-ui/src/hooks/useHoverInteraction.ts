@@ -45,7 +45,7 @@ export const useHoverInteraction = ({
   chartSpec,
   series,
   containerRef,
-  syncHover = false,
+  syncHover: _syncHover = false,
 }: HoverInteractionOptions) => {
   const { updateHoverState } = useSharedState();
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);

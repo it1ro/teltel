@@ -37,7 +37,7 @@ interface TimeCursorInteractionOptions {
  * @returns объект с обработчиками onClick, onMouseDown, onMouseMove, onMouseUp
  */
 export const useTimeCursorInteraction = ({
-  chartSpec,
+  chartSpec: _chartSpec,
   series,
   containerRef,
 }: TimeCursorInteractionOptions) => {
@@ -86,8 +86,9 @@ export const useTimeCursorInteraction = ({
       // Определяем margins (соответствуют Observable Plot defaults)
       const marginLeft = 60;
       const marginRight = 20;
-      const marginTop = 20;
-      const marginBottom = 40;
+      // marginTop и marginBottom не используются в этой функции, но оставляем для консистентности
+      // const marginTop = 20;
+      // const marginBottom = 40;
       const innerWidth = containerRect.width - marginLeft - marginRight;
 
       // Преобразуем координаты мыши в координаты данных
