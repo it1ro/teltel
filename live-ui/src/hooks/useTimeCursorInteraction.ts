@@ -41,9 +41,10 @@ export const useTimeCursorInteraction = ({
   series,
   containerRef,
 }: TimeCursorInteractionOptions) => {
-  const { sharedState, updateTimeCursor } = useSharedState();
+  const { sharedState, updateTimeCursor, updateLiveMode } = useSharedState();
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const pauseOnDragRef = useRef(false);
 
   /**
    * Преобразует координаты мыши в значение оси (frameIndex или simTime)
@@ -126,11 +127,18 @@ export const useTimeCursorInteraction = ({
       const axisValue = mouseToAxisValue(mouseX, containerRect);
 
       if (axisValue !== null) {
+        // Stage 7.5: При ручном изменении time_cursor ставим на pause, если играет
+        if (sharedState.live_mode?.is_playing) {
+          updateLiveMode((prev) => ({
+            ...prev,
+            is_playing: false,
+          }));
+        }
         // Обновляем time_cursor через shared_state
         updateTimeCursor(axisValue);
       }
     },
-    [containerRef, mouseToAxisValue, updateTimeCursor]
+    [containerRef, mouseToAxisValue, updateTimeCursor, sharedState.live_mode?.is_playing, updateLiveMode]
   );
 
   /**
@@ -156,17 +164,28 @@ export const useTimeCursorInteraction = ({
 
       isDraggingRef.current = true;
       dragStartRef.current = { x: mouseX, y: mouseY };
+      
+      // Stage 7.5: Запоминаем, нужно ли ставить на pause при начале drag
+      pauseOnDragRef.current = sharedState.live_mode?.is_playing ?? false;
 
       // Устанавливаем начальное значение time_cursor
       const axisValue = mouseToAxisValue(mouseX, containerRect);
       if (axisValue !== null) {
+        // Stage 7.5: При ручном изменении time_cursor ставим на pause, если играет
+        if (pauseOnDragRef.current) {
+          updateLiveMode((prev) => ({
+            ...prev,
+            is_playing: false,
+          }));
+          pauseOnDragRef.current = false; // Сбрасываем флаг после первого обновления
+        }
         updateTimeCursor(axisValue);
       }
 
       // Предотвращаем выделение текста при drag
       event.preventDefault();
     },
-    [containerRef, mouseToAxisValue, updateTimeCursor]
+    [containerRef, mouseToAxisValue, updateTimeCursor, sharedState.live_mode?.is_playing, updateLiveMode]
   );
 
   /**
@@ -188,11 +207,20 @@ export const useTimeCursorInteraction = ({
       const axisValue = mouseToAxisValue(mouseX, containerRect);
 
       if (axisValue !== null) {
+        // Stage 7.5: При ручном изменении time_cursor ставим на pause, если играет
+        // (только при первом движении, чтобы не ставить на pause при каждом обновлении)
+        if (pauseOnDragRef.current) {
+          updateLiveMode((prev) => ({
+            ...prev,
+            is_playing: false,
+          }));
+          pauseOnDragRef.current = false; // Сбрасываем флаг после первого обновления
+        }
         // Обновляем time_cursor в реальном времени
         updateTimeCursor(axisValue);
       }
     },
-    [mouseToAxisValue, updateTimeCursor]
+    [mouseToAxisValue, updateTimeCursor, sharedState.live_mode?.is_playing, updateLiveMode]
   );
 
   /**
@@ -202,6 +230,7 @@ export const useTimeCursorInteraction = ({
   const handleMouseUp = useCallback(() => {
     isDraggingRef.current = false;
     dragStartRef.current = null;
+    pauseOnDragRef.current = false;
   }, []);
 
   /**
@@ -211,6 +240,7 @@ export const useTimeCursorInteraction = ({
   const handleMouseLeave = useCallback(() => {
     isDraggingRef.current = false;
     dragStartRef.current = null;
+    pauseOnDragRef.current = false;
   }, []);
 
   return {
