@@ -1,0 +1,185 @@
+{
+  "layout": {
+    "version": "1.0",
+    "layout_id": "example_layout",
+    "regions": {
+      "header": {
+        "region": "header",
+        "height": "60px",
+        "components": [
+          {
+            "type": "run_selector",
+            "id": "run_selector_1"
+          },
+          {
+            "type": "time_cursor",
+            "id": "time_cursor_1",
+            "shared": true
+          },
+          {
+            "type": "status_indicator",
+            "id": "status_1"
+          }
+        ]
+      },
+      "left_panel": {
+        "region": "left_panel",
+        "width": "300px",
+        "collapsible": true,
+        "sections": [
+          {
+            "type": "run_list",
+            "id": "run_list_1",
+            "filters": {
+              "status": ["running", "completed"]
+            }
+          },
+          {
+            "type": "filter_panel",
+            "id": "filter_panel_1",
+            "filters": ["channel", "type", "tags"]
+          },
+          {
+            "type": "chart_visibility",
+            "id": "chart_visibility_1",
+            "source": "layout.main_panel.charts"
+          }
+        ]
+      },
+      "main_panel": {
+        "region": "main_panel",
+        "layout": "grid",
+        "grid_config": {
+          "columns": 2,
+          "rows": "auto",
+          "gap": "16px"
+        },
+        "charts": [
+          {
+            "chart_id": "altitude_chart",
+            "span": [1, 2]
+          },
+          {
+            "chart_id": "speed_chart",
+            "span": [1, 1]
+          },
+          {
+            "chart_id": "attitude_chart",
+            "span": [1, 1]
+          }
+        ]
+      }
+    },
+    "shared_state": {
+      "time_cursor": {
+        "axis": "frameIndex",
+        "value": null,
+        "sync_across": ["main_panel.charts"]
+      },
+      "selected_run": {
+        "run_id": null,
+        "source": null
+      }
+    }
+  },
+  "charts": {
+    "altitude_chart": {
+      "chart_id": "altitude_chart",
+      "version": "1.0",
+      "type": "time_series",
+      "data_source": {
+        "type": "event_stream",
+        "run_id": null,
+        "filters": {
+          "channel": "flight",
+          "type": "state"
+        },
+        "window": {
+          "type": "frames",
+          "size": 1000
+        }
+      },
+      "mappings": {
+        "x": {
+          "field": "frameIndex",
+          "scale": "linear"
+        },
+        "y": {
+          "field": "payload.altitude",
+          "scale": "linear"
+        }
+      },
+      "visual": {
+        "mark": "line",
+        "stroke": "#1f77b4",
+        "strokeWidth": 2
+      },
+      "title": "Altitude",
+      "axes": {
+        "x": {
+          "label": "Frame Index",
+          "grid": true
+        },
+        "y": {
+          "label": "Altitude (m)",
+          "grid": true
+        }
+      },
+      "legend": {
+        "show": true,
+        "position": "bottom"
+      }
+    },
+    "speed_chart": {
+      "chart_id": "speed_chart",
+      "version": "1.0",
+      "type": "time_series",
+      "data_source": {
+        "type": "event_stream",
+        "filters": {
+          "channel": "flight",
+          "type": "state"
+        },
+        "window": {
+          "type": "frames",
+          "size": 1000
+        }
+      },
+      "mappings": {
+        "x": {
+          "field": "frameIndex"
+        },
+        "y": {
+          "field": "payload.speed"
+        }
+      },
+      "title": "Speed"
+    },
+    "attitude_chart": {
+      "chart_id": "attitude_chart",
+      "version": "1.0",
+      "type": "multi_axis_time_series",
+      "data_source": {
+        "type": "event_stream",
+        "filters": {
+          "channel": "flight",
+          "type": "state"
+        }
+      },
+      "mappings": {
+        "x": {
+          "field": "frameIndex"
+        },
+        "y": {
+          "field": "payload.aoa",
+          "scale": "linear"
+        },
+        "y2": {
+          "field": "payload.beta",
+          "scale": "linear"
+        }
+      },
+      "title": "Angle of Attack & Sideslip"
+    }
+  }
+}
