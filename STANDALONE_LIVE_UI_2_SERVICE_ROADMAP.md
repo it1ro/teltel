@@ -315,20 +315,21 @@ Mitigation: Использовать runtime конфигурацию (config.js
 Mitigation: Валидация контракта через тесты
 ---
 
-Этап 4: Dockerization UI
+Этап 4: Dockerization UI ✅ ЗАВЕРШЁН
 Цель: Создать Dockerfile для Live UI и протестировать сборку
 
 Входные условия:
 
-Этап 3 завершён
-Конфигурация работает через env vars
+✅ Этап 3 завершён
+✅ Конфигурация работает через env vars
 Задачи:
 
-Создать live-ui/Dockerfile (multi-stage: build + nginx)
-Создать live-ui/nginx.conf для production
-Создать live-ui/.dockerignore
-Протестировать сборку образа
-Протестировать запуск контейнера локально
+✅ Создать live-ui/Dockerfile (multi-stage: build + nginx)
+✅ Создать live-ui/nginx.conf для production
+✅ Создать live-ui/.dockerignore
+✅ Создать live-ui/docker-entrypoint.sh для генерации config.js из env vars
+✅ Протестировать сборку образа
+✅ Протестировать запуск контейнера локально
 Структура Dockerfile:
 
 # Stage 1: Build
@@ -347,13 +348,24 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 Ожидаемый результат:
 
-Рабочий Dockerfile
-Production build работает в контейнере
-Конфигурация через env vars работает
+✅ Рабочий Dockerfile
+✅ Production build работает в контейнере
+✅ Конфигурация через env vars работает
+✅ Runtime конфигурация через docker-entrypoint.sh работает
+✅ Health check endpoint работает
+✅ Nginx корректно отдает статические файлы
+
+Реализовано:
+- Multi-stage Dockerfile (node:20-alpine для build, nginx:alpine для serve)
+- nginx.conf с настройками для SPA, gzip, security headers
+- docker-entrypoint.sh для генерации config.js из environment variables
+- .dockerignore для оптимизации build context
+- Исправлены все TypeScript ошибки компиляции
+
 Риски:
 
 Проблемы с путями в production build
-Mitigation: Тестирование на разных окружениях
+Mitigation: Тестирование на разных окружениях ✅ Протестировано
 ---
 
 Этап 5: Compose-интеграция
