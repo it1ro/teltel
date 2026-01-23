@@ -90,19 +90,14 @@ else
 fi
 echo ""
 
-# 5. Проверка изоляции компонентов
-echo "=== 5. Изоляция компонентов ==="
-echo "Проверка: Live UI работает независимо от storage"
-if curl -s "$BASE_URL/" > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Live UI доступен${NC}"
+# 5. Проверка Live UI v2
+echo "=== 5. Live UI v2 ==="
+LIVE_UI_URL="${LIVE_UI_URL:-http://localhost:3000}"
+echo "Проверка: Live UI v2 доступен"
+if curl -s "$LIVE_UI_URL" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Live UI v2 доступен на $LIVE_UI_URL${NC}"
 else
-    echo -e "${RED}✗ Live UI недоступен${NC}"
-fi
-
-if curl -s "$BASE_URL/analysis.html" > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Post-run Analysis UI доступен${NC}"
-else
-    echo -e "${YELLOW}⚠ Post-run Analysis UI недоступен (может требовать ClickHouse)${NC}"
+    echo -e "${YELLOW}⚠ Live UI v2 недоступен на $LIVE_UI_URL (убедитесь, что сервис запущен)${NC}"
 fi
 echo ""
 
