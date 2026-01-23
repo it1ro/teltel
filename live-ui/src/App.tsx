@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { LayoutRenderer } from './components/layout/LayoutRenderer';
+import { SharedStateProvider } from './context/SharedStateContext';
 import { loadLayout } from './utils/loader';
 import type { LayoutConfig } from './utils/loader';
 
@@ -160,7 +161,11 @@ const App: React.FC = () => {
     return null;
   }
 
-  return <LayoutRenderer layout={layoutConfig.layout} />;
+  return (
+    <SharedStateProvider initialSharedState={layoutConfig.layout.shared_state}>
+      <LayoutRenderer layout={layoutConfig.layout} />
+    </SharedStateProvider>
+  );
 };
 
 export default App;

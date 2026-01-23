@@ -1,4 +1,4 @@
-# Статус реализации Live UI (Этапы 1-2)
+# Статус реализации Live UI (Этапы 1-3)
 
 ## ✅ Выполнено
 
@@ -39,6 +39,29 @@
   - Поддержка span для chart placeholders
   - Полностью декларативный (из JSON)
 
+### Этап 3: Shared State Engine
+
+- [x] **SharedStateContext** (`src/context/SharedStateContext.tsx`)
+  - Централизованное управление состоянием UI
+  - Типизация согласно layout-контракту
+  - Поддержка time_cursor (axis, value, sync_across)
+  - Поддержка selected_run (run_id, source)
+
+- [x] **SharedStateProvider** (`src/context/SharedStateContext.tsx`)
+  - Инициализация из layout.shared_state
+  - Обновление состояния через методы updateTimeCursor, updateSelectedRun
+  - Система подписок для синхронизации компонентов
+
+- [x] **Хуки для работы с shared_state**
+  - `useSharedState()` - доступ к полному контексту
+  - `useSharedStateField<K>()` - подписка на конкретное поле
+  - Типобезопасность через TypeScript
+
+- [x] **Интеграция в App.tsx**
+  - SharedStateProvider оборачивает LayoutRenderer
+  - Инициализация из layout.shared_state
+  - Готовность к использованию в компонентах регионов
+
 ## 📁 Структура проекта
 
 ```
@@ -59,6 +82,9 @@ live-ui/
 │   │   │   └── MainPanelRegion.tsx
 │   │   └── layout/           # Layout движок
 │   │       └── LayoutRenderer.tsx
+│   ├── context/              # Shared State Engine
+│   │   ├── SharedStateContext.tsx
+│   │   └── index.ts
 │   ├── App.tsx               # Главный компонент
 │   └── main.tsx              # Точка входа
 ├── public/
@@ -69,7 +95,9 @@ live-ui/
 └── README.md
 ```
 
-## 🎯 Definition of Done (Этапы 1-2)
+## 🎯 Definition of Done
+
+### Этапы 1-2
 
 - [x] Layout и ChartSpec валидируются по JSON Schema
 - [x] Невалидный конфиг блокирует запуск UI
@@ -80,14 +108,26 @@ live-ui/
 - [x] Нет зависимости от данных или backend
 - [x] Код готов к подключению shared_state и data-layer
 
+### Этап 3
+
+- [x] SharedStateContext и SharedStateProvider реализованы
+- [x] Типизация соответствует layout-контракту
+- [x] time_cursor поддерживает axis (frameIndex/simTime) и value
+- [x] selected_run поддерживает run_id и source
+- [x] Система подписок для синхронизации компонентов
+- [x] Интеграция в App.tsx через SharedStateProvider
+- [x] Хуки useSharedState и useSharedStateField готовы к использованию
+- [x] Никаких данных, WebSocket, backend (строго Stage 3)
+- [x] Никакой пользовательской интерактивности (только архитектурный механизм)
+
 ## 🚫 Что НЕ реализовано (следующие этапы)
 
 - ❌ WebSocket подключение
 - ❌ Data layer
 - ❌ Observable Plot / D3 графики
-- ❌ Shared state логика
-- ❌ Интерактивность
+- ❌ Пользовательская интерактивность (click, drag, zoom)
 - ❌ Реальные данные
+- ❌ Подключение компонентов к shared_state (будет в следующих этапах)
 
 ## ✅ Архитектурные ограничения соблюдены
 
@@ -115,6 +155,8 @@ npm run build
 
 ## 📝 Пример использования
 
+### Этапы 1-2: Layout Engine
+
 ```typescript
 import { loadLayout } from './utils/loader';
 
@@ -134,6 +176,28 @@ const validated = loadLayout(config);
 
 // Использование в LayoutRenderer
 <LayoutRenderer layout={validated.layout} />
+```
+
+### Этап 3: Shared State Engine
+
+```typescript
+import { SharedStateProvider } from './context/SharedStateContext';
+import { useSharedState, useSharedStateField } from './context/SharedStateContext';
+
+// В App.tsx
+<SharedStateProvider initialSharedState={layout.shared_state}>
+  <LayoutRenderer layout={layout} />
+</SharedStateProvider>
+
+// В компоненте (пример для будущего использования)
+const MyComponent = () => {
+  const { sharedState, updateTimeCursor } = useSharedState();
+  // или
+  const [timeCursor, updateTimeCursor] = useSharedStateField('time_cursor');
+  
+  // timeCursor: { axis: 'frameIndex', value: null, sync_across: [...] }
+  // updateTimeCursor(newValue) - обновление значения
+};
 ```
 
 ## 🔗 Ссылки
