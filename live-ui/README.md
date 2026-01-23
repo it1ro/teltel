@@ -40,9 +40,9 @@
 
 Live UI реализован как отдельный сервис на базе:
 - **Vite** — сборщик и dev-сервер
-- **React** — UI библиотека
+- **React** + **React DOM** — UI библиотека
 - **TypeScript** — типизация
-- **AJV** — валидация JSON Schema
+- **AJV** + **AJV Formats** — валидация JSON Schema
 - **Observable Plot** — визуализация графиков
 - **D3** — кастомные визуализации (Event Timeline)
 
@@ -112,8 +112,10 @@ live-ui/
 │   └── main.tsx              # Точка входа
 ├── public/
 │   └── example-layout.json    # Пример валидного layout
+├── index.html                 # HTML шаблон (Vite entry point)
 ├── package.json
 ├── tsconfig.json
+├── tsconfig.node.json         # TypeScript конфигурация для Node.js (vite.config.ts)
 └── vite.config.ts
 ```
 
