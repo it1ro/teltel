@@ -1,10 +1,12 @@
 /**
  * HeaderRegion - компонент для отображения header региона
- * Рендерит заглушки компонентов без данных и логики
+ * Рендерит компоненты header, включая LiveControl для global_controls
+ * Stage 7.5: Интеграция LiveControl
  */
 
 import React from 'react';
 import type { HeaderRegion as HeaderRegionType } from '../../types';
+import { LiveControl } from '../interaction/LiveControl';
 
 interface HeaderRegionProps {
   spec: HeaderRegionType;
@@ -25,9 +27,15 @@ export const HeaderRegion: React.FC<HeaderRegionProps> = ({ spec }) => {
         gap: '16px',
       }}
     >
-      {spec.components?.map((component) => (
-        <ComponentPlaceholder key={component.id} component={component} />
-      ))}
+      {spec.components?.map((component) => {
+        // Stage 7.5: Отображаем LiveControl для global_controls
+        if (component.type === 'global_controls') {
+          return <LiveControl key={component.id} />;
+        }
+
+        // Для остальных компонентов используем заглушки
+        return <ComponentPlaceholder key={component.id} component={component} />;
+      })}
     </div>
   );
 };
