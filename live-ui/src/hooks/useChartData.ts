@@ -31,10 +31,11 @@ export function useChartData(
       return;
     }
 
-    // Функция обновления данных
-    const updateData = () => {
+    // Функция обновления данных (поддерживает async для historical данных)
+    const updateData = async () => {
       try {
-        const newSeries = dataLayer.getSeries(chartSpec);
+        setIsLoading(true);
+        const newSeries = await dataLayer.getSeries(chartSpec);
         setSeries(newSeries);
         setIsLoading(false);
         setError(null);
@@ -49,8 +50,12 @@ export function useChartData(
     // Первоначальное обновление
     updateData();
 
-    // Подписка на обновления (проверяем каждые 100ms)
-    updateIntervalRef.current = setInterval(updateData, 100);
+    // Для live данных подписываемся на обновления (проверяем каждые 100ms)
+    // Для historical данных обновление не требуется
+    const dataSourceType = chartSpec.data_source.type;
+    if (dataSourceType === 'event_stream' || dataSourceType === 'hybrid') {
+      updateIntervalRef.current = setInterval(updateData, 100);
+    }
 
     return () => {
       if (updateIntervalRef.current) {
