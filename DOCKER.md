@@ -11,9 +11,9 @@ make docker-up
 ```
 
 Это запустит:
-- **teltel** (backend) на http://localhost:8081
+- **teltel** (backend) на http://localhost:8081 (API и WebSocket, без UI)
 - **ClickHouse** на http://localhost:8123
-- **live-ui** (UI) на http://localhost:3000
+- **live-ui** (Live UI v2) на http://localhost:3000 (единственный пользовательский интерфейс)
 
 ### Остановка стека
 
@@ -49,6 +49,7 @@ docker-compose logs -f live-ui
 - **Образ:** собирается из `Dockerfile`
 - **Health check:** `GET /api/health` каждые 10 секунд
 - **Зависимости:** ожидает готовности ClickHouse
+- **Примечание:** Backend предоставляет только API и WebSocket endpoints. UI доступен через отдельный сервис live-ui.
 
 #### clickhouse
 
@@ -64,6 +65,7 @@ docker-compose logs -f live-ui
 - **Health check:** `GET /health` каждые 10 секунд
 - **Зависимости:** ожидает готовности teltel
 - **Конфигурация:** WebSocket URL настраивается через `VITE_WS_URL` (по умолчанию `ws://localhost:8081/ws`)
+- **Примечание:** Live UI v2 является единственным пользовательским интерфейсом проекта. Legacy UI (web/) удалён.
 
 ## Конфигурация через переменные окружения
 
