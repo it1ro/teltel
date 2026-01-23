@@ -68,11 +68,26 @@ export function getLayoutUrl(): string | undefined {
 }
 
 /**
+ * Получение базового URL для HTTP API
+ * Извлекается из WebSocket URL (ws://host:port -> http://host:port)
+ */
+export function getApiBaseUrl(): string {
+  const wsUrl = getWebSocketUrl();
+  
+  // Преобразуем ws:// или wss:// в http:// или https://
+  const httpUrl = wsUrl.replace(/^ws/, 'http');
+  
+  // Убираем /ws из конца если есть
+  return httpUrl.replace(/\/ws$/, '');
+}
+
+/**
  * Получение всей конфигурации
  */
 export function getConfig() {
   return {
     wsUrl: getWebSocketUrl(),
     layoutUrl: getLayoutUrl(),
+    apiBaseUrl: getApiBaseUrl(),
   };
 }
