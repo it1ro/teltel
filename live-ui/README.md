@@ -246,6 +246,8 @@ Live UI v2 поддерживает полный набор интерактив
 
 ## Установка и запуск
 
+### Локальная разработка
+
 ```bash
 # Установка зависимостей
 npm install
@@ -258,7 +260,60 @@ npm run build
 
 # Проверка типов
 npm run type-check
+
+# Предпросмотр production build
+npm run preview
 ```
+
+**Доступ:** `http://localhost:3000`
+
+**Примечание:** В dev-режиме Live UI подключается к `ws://localhost:8080/ws` по умолчанию (если не задана переменная `VITE_WS_URL`).
+
+### Docker (production)
+
+Live UI может быть запущен как отдельный сервис в Docker:
+
+```bash
+# Сборка образа
+docker build -t teltel-live-ui:latest .
+
+# Запуск контейнера
+docker run -d \
+  -p 3000:80 \
+  -e VITE_WS_URL=ws://localhost:8081/ws \
+  teltel-live-ui:latest
+
+# Или через docker-compose (рекомендуется)
+cd ..  # В корень проекта
+docker-compose up -d live-ui
+```
+
+**Доступ:** `http://localhost:3000`
+
+**Преимущества Docker:**
+- ✅ Production-ready сборка (оптимизированный Vite build)
+- ✅ Автоматическая конфигурация через environment variables
+- ✅ Health checks и зависимости между сервисами
+- ✅ Изолированная среда выполнения
+
+### Структура Docker образа
+
+Live UI использует multi-stage build:
+
+1. **Stage 1 (builder):** Node.js для сборки приложения
+   - Установка зависимостей (`npm ci`)
+   - Сборка production build (`npm run build`)
+   - Build-time переменные окружения (`VITE_*`)
+
+2. **Stage 2 (serve):** Nginx для отдачи статических файлов
+   - Копирование собранных файлов из builder stage
+   - Конфигурация nginx для SPA
+   - Runtime конфигурация через `docker-entrypoint.sh`
+
+**Файлы:**
+- `Dockerfile` - multi-stage build конфигурация
+- `docker-entrypoint.sh` - генерация `config.js` из environment variables
+- `nginx.conf` - конфигурация nginx для production
 
 ## Конфигурация
 
@@ -266,25 +321,77 @@ Live UI поддерживает конфигурацию через environment
 
 ### Переменные окружения
 
-- **VITE_WS_URL** (опционально) — URL WebSocket endpoint для подключения к backend
-  - По умолчанию: `ws://localhost:8080/ws` (для dev-режима)
-  - Пример: `ws://teltel:8080/ws` (для Docker)
+#### VITE_WS_URL
 
-- **VITE_LAYOUT_URL** (опционально) — URL для загрузки layout из backend API
-  - По умолчанию: используется статический файл `/example-layout.json`
-  - Пример: `http://teltel:8080/api/layout`
+**Описание:** URL WebSocket endpoint для подключения к teltel backend.
+
+**Тип:** строка (URL)
+
+**Обязательность:** опционально
+
+**Значение по умолчанию:**
+- Dev-режим: `ws://localhost:8080/ws`
+- Docker: `ws://localhost:8081/ws` (внешний порт backend)
+
+**Примеры:**
+```bash
+# Dev-режим
+VITE_WS_URL=ws://localhost:8080/ws
+
+# Docker (внешний адрес для браузера)
+VITE_WS_URL=ws://localhost:8081/ws
+
+# Docker (внутренний адрес, не работает для браузера!)
+VITE_WS_URL=ws://teltel:8080/ws  # ❌ Браузер не может подключиться
+```
+
+**Важно:** В Docker используйте внешний адрес (`ws://localhost:8081/ws`), так как браузер не может подключиться к внутренним адресам Docker сети.
+
+#### VITE_LAYOUT_URL
+
+**Описание:** URL для загрузки layout из backend API.
+
+**Тип:** строка (URL)
+
+**Обязательность:** опционально
+
+**Значение по умолчанию:** используется статический файл `/example-layout.json`
+
+**Примеры:**
+```bash
+# Загрузка layout из backend API
+VITE_LAYOUT_URL=http://localhost:8081/api/layout
+
+# Или из внутреннего адреса Docker (для будущей реализации)
+VITE_LAYOUT_URL=http://teltel:8080/api/layout
+```
+
+**Примечание:** Эта функциональность планируется к реализации. В текущей версии используется статический файл.
 
 ### Dev-режим
 
 В dev-режиме (`npm run dev`) переменные окружения можно задать через `.env` файл:
 
 ```bash
-# .env
+# live-ui/.env
 VITE_WS_URL=ws://localhost:8080/ws
 VITE_LAYOUT_URL=http://localhost:8080/api/layout
 ```
 
-Если переменные не заданы, используется fallback `ws://localhost:8080/ws`.
+**Приоритет конфигурации в dev-режиме:**
+1. `import.meta.env.VITE_WS_URL` (из `.env` файла или системных переменных)
+2. `ws://localhost:8080/ws` (fallback)
+
+**Пример использования:**
+```bash
+# Создайте .env файл в live-ui/
+echo "VITE_WS_URL=ws://localhost:8080/ws" > .env
+
+# Запустите dev-сервер
+npm run dev
+```
+
+**Примечание:** После изменения `.env` файла необходимо перезапустить dev-сервер.
 
 ### Production (Docker)
 
@@ -293,37 +400,78 @@ VITE_LAYOUT_URL=http://localhost:8080/api/layout
 1. **Build-time конфигурация** (через Vite env vars):
    - Переменные `VITE_*` инжектируются на этапе сборки
    - Используется в Dockerfile при `npm run build`
+   - Передается через `ARG` и `ENV` в Dockerfile
 
-2. **Runtime конфигурация** (через `config.js`):
-   - Файл `public/config.js` загружается перед React
+2. **Runtime конфигурация** (через `config.js`, приоритет):
+   - Файл `config.js` генерируется при старте контейнера через `docker-entrypoint.sh`
+   - Загружается в браузере перед React
    - Устанавливает `window.__ENV__` с конфигурацией
-   - В production может быть заменен через nginx template или генерироваться динамически
+   - Позволяет изменять конфигурацию без пересборки образа
 
-Приоритет конфигурации:
-1. `window.__ENV__.VITE_WS_URL` (runtime, production)
+**Приоритет конфигурации:**
+1. `window.__ENV__.VITE_WS_URL` (runtime, production, **наивысший приоритет**)
 2. `import.meta.env.VITE_WS_URL` (build-time, Vite)
 3. `ws://localhost:8080/ws` (fallback для dev)
 
+**Как это работает:**
+1. При старте контейнера `docker-entrypoint.sh` читает environment variables
+2. Генерирует `config.js` с `window.__ENV__` объектом
+3. `config.js` загружается в `index.html` перед React
+4. Приложение использует `window.__ENV__` для конфигурации
+
+**Преимущества runtime конфигурации:**
+- ✅ Изменение конфигурации без пересборки образа
+- ✅ Разные конфигурации для разных окружений
+- ✅ Простота настройки через docker-compose
+
 ### Пример конфигурации для Docker
 
+#### docker-compose.yml
+
 ```yaml
-# docker-compose.yml
 services:
   live-ui:
+    build:
+      context: ./live-ui
+      dockerfile: Dockerfile
+    container_name: teltel-live-ui
+    ports:
+      - "3000:80"
     environment:
-      - VITE_WS_URL=ws://teltel:8080/ws
-      - VITE_LAYOUT_URL=http://teltel:8080/api/layout
+      # WebSocket URL для браузерных подключений (используется внешний порт backend)
+      - VITE_WS_URL=ws://localhost:8081/ws
+      # Опционально: URL для загрузки layout из backend
+      # - VITE_LAYOUT_URL=http://localhost:8081/api/layout
+    depends_on:
+      teltel:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - teltel-network
 ```
 
-Или через runtime конфигурацию (config.js):
+**Важно:** WebSocket URL должен быть доступен из браузера, поэтому используется внешний адрес `ws://localhost:8081/ws`, а не внутренний `ws://teltel:8080/ws`.
+
+#### Runtime конфигурация (config.js)
+
+В production `config.js` генерируется автоматически из environment variables при старте контейнера:
 
 ```javascript
-// public/config.js (в production может генерироваться динамически)
+// Автоматически генерируется docker-entrypoint.sh
 window.__ENV__ = {
-  VITE_WS_URL: 'ws://teltel:8080/ws',
-  VITE_LAYOUT_URL: 'http://teltel:8080/api/layout'
+  VITE_WS_URL: 'ws://localhost:8081/ws',
+  VITE_LAYOUT_URL: 'http://localhost:8081/api/layout'  // если задано
 };
 ```
+
+**Приоритет конфигурации:**
+1. `window.__ENV__.VITE_WS_URL` (runtime, production, приоритет)
+2. `import.meta.env.VITE_WS_URL` (build-time, Vite)
+3. `ws://localhost:8080/ws` (fallback для dev)
 
 ## Использование
 
@@ -534,6 +682,48 @@ ChartSpec описывает конфигурацию графика:
 
 ## Разработка
 
+### Workflow для разработки
+
+#### Локальная разработка (рекомендуется для изменений кода)
+
+1. **Запустите backend:**
+   ```bash
+   # В корне проекта
+   go run cmd/teltel/main.go
+   ```
+
+2. **Запустите Live UI в dev-режиме:**
+   ```bash
+   cd live-ui
+   npm run dev
+   ```
+
+3. **Откройте браузер:** `http://localhost:3000`
+
+**Преимущества:**
+- ✅ Hot-reload для быстрой итерации
+- ✅ Source maps для отладки
+- ✅ Прямой доступ к исходному коду
+
+#### Docker для тестирования production build
+
+1. **Соберите образ:**
+   ```bash
+   docker build -t teltel-live-ui:latest .
+   ```
+
+2. **Запустите контейнер:**
+   ```bash
+   docker run -d -p 3000:80 -e VITE_WS_URL=ws://localhost:8081/ws teltel-live-ui:latest
+   ```
+
+3. **Проверьте production build:** `http://localhost:3000`
+
+**Используйте для:**
+- Тестирования production сборки
+- Проверки оптимизаций
+- Валидации конфигурации Docker
+
 ### Добавление нового компонента региона
 
 1. Создайте компонент в `src/components/regions/`
@@ -570,6 +760,41 @@ try {
   console.error('Layout validation failed:', error);
   // UI не стартует с невалидным конфигом
 }
+```
+
+### Отладка в Docker
+
+#### Просмотр логов
+
+```bash
+# Логи live-ui контейнера
+docker-compose logs -f live-ui
+
+# Логи всех сервисов
+docker-compose logs -f
+```
+
+#### Shell в контейнере
+
+```bash
+# Войти в контейнер
+docker-compose exec live-ui /bin/sh
+
+# Проверить конфигурацию
+cat /usr/share/nginx/html/config.js
+
+# Проверить health check
+wget --spider -q http://localhost/health
+```
+
+#### Пересборка образа
+
+```bash
+# Пересборка без кэша
+docker-compose build --no-cache live-ui
+
+# Пересборка и перезапуск
+docker-compose up -d --build live-ui
 ```
 
 ## Следующие шаги
