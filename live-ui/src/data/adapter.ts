@@ -141,6 +141,37 @@ export function getSeries(
     return [];
   }
 
+  // Этап 8: Поддержка множественных run'ов
+  // Если указаны run_ids, создаем отдельную series для каждого run'а
+  if (data_source.run_ids && data_source.run_ids.length > 1) {
+    return data_source.run_ids.map((runId) => {
+      const runEvents = windowedEvents.filter((event) => event.runId === runId);
+      const points = runEvents
+        .map((event) => {
+          const x = getXValue(event, xMapping.field);
+          const y = getYValue(event, yMapping.field);
+
+          if (x === null || y === null) {
+            return null;
+          }
+          return {
+            x,
+            y,
+            frameIndex: event.frameIndex,
+            simTime: event.simTime,
+            event,
+          } as DataPoint;
+        })
+        .filter((p): p is DataPoint => p !== null);
+
+      return {
+        id: `${chartSpec.chart_id}-${runId}`,
+        points,
+      };
+    });
+  }
+
+  // Одна серия для одного run'а или без указания run_ids
   const points = windowedEvents
     .map((event) => {
       const x = getXValue(event, xMapping.field);
@@ -159,9 +190,14 @@ export function getSeries(
     })
     .filter((p): p is DataPoint => p !== null);
 
+  // Если есть run_id, включаем его в id series для идентификации
+  const seriesId = data_source.run_id
+    ? `${chartSpec.chart_id}-${data_source.run_id}`
+    : chartSpec.chart_id;
+
   return [
     {
-      id: chartSpec.chart_id,
+      id: seriesId,
       points,
     },
   ];
