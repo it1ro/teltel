@@ -2,11 +2,13 @@
  * HeaderRegion - компонент для отображения header региона
  * Рендерит компоненты header, включая LiveControl для global_controls
  * Stage 7.5: Интеграция LiveControl
+ * Stage 7.6: Интеграция TimeScrubber
  */
 
 import React from 'react';
 import type { HeaderRegion as HeaderRegionType } from '../../types';
 import { LiveControl } from '../interaction/LiveControl';
+import { TimeScrubber } from '../interaction/TimeScrubber';
 
 interface HeaderRegionProps {
   spec: HeaderRegionType;
@@ -31,6 +33,11 @@ export const HeaderRegion: React.FC<HeaderRegionProps> = ({ spec }) => {
         // Stage 7.5: Отображаем LiveControl для global_controls
         if (component.type === 'global_controls') {
           return <LiveControl key={component.id} />;
+        }
+
+        // Stage 7.6: Отображаем TimeScrubber для time_cursor
+        if (component.type === 'time_cursor') {
+          return <TimeScrubber key={component.id} />;
         }
 
         // Для остальных компонентов используем заглушки
