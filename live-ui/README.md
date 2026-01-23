@@ -189,6 +189,15 @@ live-ui/
 - [x] **7.6**: Manual Time Scrubbing (slider для выбора времени)
 - [x] **7.7**: Синхронизация интерактивности между графиками
 
+### ✅ Этап 8: Run Comparison (Historical Data Integration)
+
+- [x] HTTP клиент для Analysis API (загрузка исторических данных из ClickHouse)
+- [x] Data Layer для гибридного режима (live + historical данные)
+- [x] Расширение ChartSpec для сравнения run'ов (поддержка `run_ids[]`)
+- [x] UI компоненты для управления run'ами (RunSelector, RunList)
+- [x] Визуализация сравнения run'ов (множественные series на одном графике)
+- [x] Интеграция во все типы графиков (time_series, scatter, event_timeline)
+
 ## Интерактивные возможности
 
 Live UI v2 поддерживает полный набор интерактивных возможностей для анализа данных в реальном времени.
@@ -243,6 +252,115 @@ Live UI v2 поддерживает полный набор интерактив
 - **Независимость по умолчанию** — по умолчанию графики независимы, синхронизация включается явно
 
 Все интерактивные возможности управляются через `shared_state` и не требуют локального состояния в компонентах графиков.
+
+## Сравнение run'ов (Этап 8)
+
+Live UI v2 поддерживает сравнение нескольких run'ов с использованием исторических данных из ClickHouse через Analysis API.
+
+### Возможности
+
+- **Загрузка исторических данных** — загрузка завершённых run'ов из ClickHouse через Analysis API
+- **Гибридный режим** — объединение live и historical данных на одном графике
+- **Множественные run'ы** — сравнение нескольких run'ов на одном графике
+- **UI компоненты** — RunSelector и RunList для выбора и управления run'ами
+- **Цветовое кодирование** — каждый run отображается своим цветом с легендой
+
+### Использование
+
+#### 1. ChartSpec с множественными run'ами
+
+```json
+{
+  "chart_id": "comparison_chart",
+  "type": "time_series",
+  "data_source": {
+    "type": "historical",
+    "run_ids": ["run-1", "run-2", "run-3"],
+    "filters": {
+      "sourceId": "flight-engine",
+      "type": "state",
+      "jsonPath": "altitude"
+    }
+  },
+  "mappings": {
+    "x": { "field": "simTime" },
+    "y": { "field": "payload.value" }
+  }
+}
+```
+
+#### 2. Гибридный режим (live + historical)
+
+```json
+{
+  "chart_id": "hybrid_chart",
+  "type": "time_series",
+  "data_source": {
+    "type": "hybrid",
+    "run_id": "current-run",
+    "run_ids": ["historical-run-1", "historical-run-2"],
+    "filters": {
+      "sourceId": "flight-engine",
+      "type": "state",
+      "jsonPath": "altitude"
+    }
+  }
+}
+```
+
+#### 3. UI компоненты в layout
+
+```json
+{
+  "regions": {
+    "header": {
+      "components": [
+        {
+          "id": "run_selector",
+          "type": "run_selector",
+          "multiple": true,
+          "maxSelection": 3
+        }
+      ]
+    },
+    "left_panel": {
+      "components": [
+        {
+          "id": "run_list",
+          "type": "run_list",
+          "filters": {
+            "status": ["completed"],
+            "daysBack": 7
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Компоненты
+
+- **RunSelector** — выпадающий список для выбора run'ов (одиночный или множественный выбор)
+- **RunList** — список доступных run'ов с метаданными (статус, дата, длительность)
+- **useRuns hook** — React hook для загрузки run'ов с фильтрами
+
+### Data Layer
+
+Data Layer автоматически:
+- Загружает исторические данные через Analysis API
+- Кэширует загруженные данные
+- Объединяет live и historical данные в единый формат
+- Создаёт отдельные series для каждого run'а
+
+### Визуализация
+
+Все типы графиков поддерживают сравнение run'ов:
+- **TimeSeriesChart** — множественные линии на одном графике
+- **ScatterChart** — множественные наборы точек с цветовым кодированием
+- **EventTimelineChart** — события из разных run'ов с цветовым кодированием
+
+Каждый run отображается своим цветом через Observable Plot или D3, с легендой для идентификации.
 
 ## Установка и запуск
 
