@@ -17,13 +17,18 @@ services:
       - teltel-network
 
   # Backend API (без статического UI; только /api/* и /ws)
+  # После настройки nginx proxy (Этап 2) backend доступен только внутри Docker сети
+  # Внешний доступ к API: http://localhost:3000/api/* (через nginx proxy в live-ui)
   teltel:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: teltel
-    ports:
-      - "8081:8080"
+    # Убран внешний порт 8081:8080 - backend доступен только через nginx proxy
+    # Внутренний адрес: http://teltel:8080 (для nginx proxy)
+    # Внешний доступ: http://localhost:3000/api/* (через nginx proxy)
+    # ports:
+    #   - "8081:8080"
     environment:
       - TELTEL_HTTP_PORT=8080
       - TELTEL_CLICKHOUSE_URL=http://clickhouse:8123
@@ -43,6 +48,10 @@ services:
       - teltel-network
 
   # Live UI v2 — единственный пользовательский интерфейс проекта
+  # nginx proxy: единая точка входа для браузера
+  # - / → React Build (статический контент)
+  # - /api/* → proxy_pass → http://teltel:8080/api/*
+  # - /ws → proxy_pass → ws://teltel:8080/ws
   live-ui:
     build:
       context: ./live-ui
@@ -50,11 +59,10 @@ services:
     container_name: teltel-live-ui
     ports:
       - "3000:80"
-    environment:
-      # WebSocket URL для браузерных подключений (используется внешний порт backend)
-      - VITE_WS_URL=ws://localhost:8081/ws
-      # VITE_LAYOUT_URL опционально, можно добавить позже
-      # - VITE_LAYOUT_URL=http://localhost:8081/api/layout
+    # Убрана переменная VITE_WS_URL - используются относительные пути (/ws)
+    # После миграции на относительные пути (Этапы 4, 5) runtime конфигурация не нужна
+    # environment:
+    #   - VITE_WS_URL=ws://localhost:8081/ws
     depends_on:
       teltel:
         condition: service_healthy

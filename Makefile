@@ -32,7 +32,8 @@ docker-build:
 docker-up:
 	@echo "Starting docker-compose stack..."
 	@docker-compose up -d
-	@echo "Stack started. Live UI: http://localhost:3000, Backend API: http://localhost:8081"
+	@echo "Stack started. Live UI: http://localhost:3000"
+	@echo "Backend API: http://localhost:3000/api/* (через nginx proxy)"
 
 # Stop docker-compose stack
 docker-down:
@@ -55,9 +56,10 @@ validate:
 	@TELTEL_BASE_URL=$(TELTEL_BASE_URL) CLICKHOUSE_URL=$(CLICKHOUSE_URL) ./scripts/validate.sh
 
 # Run validation scripts against dockerized stack
+# Использует nginx proxy для доступа к backend API
 validate-docker:
 	@echo "Running Engineering Validation against dockerized stack..."
-	@TELTEL_BASE_URL=http://localhost:8081 CLICKHOUSE_URL=http://localhost:8123 ./scripts/validate.sh
+	@TELTEL_BASE_URL=http://localhost:3000/api CLICKHOUSE_URL=http://localhost:8123 ./scripts/validate.sh
 
 # View docker-compose logs
 docker-logs:
