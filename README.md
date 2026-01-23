@@ -106,6 +106,11 @@ go run cmd/teltel/main.go \
 make docker-up
 ```
 
+Это запустит:
+- **teltel backend** на http://localhost:8081 (API и WebSocket)
+- **ClickHouse** на http://localhost:8123
+- **Live UI v2** на http://localhost:3000 (единственный пользовательский интерфейс)
+
 Подробнее о Docker окружении см. [DOCKER.md](DOCKER.md).
 
 ---
