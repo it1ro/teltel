@@ -1,12 +1,15 @@
 /**
  * EventTimelineChart - компонент для визуализации дискретных событий на временной оси
  * Stage 6: кастомный рендеринг через D3, без интерактивности
+ * Stage 7.2: добавлена hover-интерактивность через shared_state
  */
 
 import React, { useMemo, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { ChartSpec } from '../../types';
 import type { Series, Event } from '../../data/types';
+import { useHoverInteraction } from '../../hooks/useHoverInteraction';
+import { TooltipLayer } from '../interaction/TooltipLayer';
 
 interface EventTimelineChartProps {
   chartSpec: ChartSpec;
@@ -28,6 +31,14 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hoverContainerRef = useRef<HTMLDivElement>(null);
+
+  // Stage 7.2: hover-интерактивность через shared_state
+  const { onMouseMove, onMouseLeave } = useHoverInteraction({
+    chartSpec,
+    series,
+    containerRef: hoverContainerRef,
+  });
 
   // Извлекаем все события из series
   const events = useMemo(() => {
@@ -458,13 +469,16 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
 
   return (
     <div
-      ref={containerRef}
+      ref={hoverContainerRef}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
       style={{
         width: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         padding: '16px',
+        position: 'relative',
       }}
     >
       {chartSpec.title && (
@@ -479,15 +493,24 @@ export const EventTimelineChart: React.FC<EventTimelineChartProps> = ({
           {chartSpec.title}
         </div>
       )}
-      <svg
-        ref={svgRef}
+      <div
+        ref={containerRef}
         style={{
           flex: 1,
           minHeight: 0,
           width: '100%',
           height: '100%',
         }}
-      />
+      >
+        <svg
+          ref={svgRef}
+          style={{
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </div>
+      <TooltipLayer containerRef={hoverContainerRef} />
     </div>
   );
 };
