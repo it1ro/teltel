@@ -17,14 +17,19 @@ import { useDataLayerContext } from '../../context/DataLayerContext';
 
 interface ChartRendererProps {
   chartSpec: ChartSpec;
+  /**
+   * Stage 7.7: Все chart_id для определения групп синхронизации
+   */
+  allChartIds?: string[];
 }
 
 /**
  * ChartRenderer определяет тип графика и делегирует рендер соответствующему компоненту
  * Не содержит логики визуализации
  * Stage 7.2: графики рендерят TooltipLayer внутри себя
+ * Stage 7.7: передает информацию о синхронизации в графики
  */
-export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
+export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec, allChartIds }) => {
   // Получаем Data Layer из контекста
   const dataLayer = useDataLayerContext();
 
@@ -64,6 +69,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
           chartSpec={chartSpec}
           series={series}
           isLoading={isLoading}
+          allChartIds={allChartIds}
         />
       );
 
@@ -73,6 +79,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
           chartSpec={chartSpec}
           series={series}
           isLoading={isLoading}
+          allChartIds={allChartIds}
         />
       );
 
@@ -82,6 +89,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
           chartSpec={chartSpec}
           series={series}
           isLoading={isLoading}
+          allChartIds={allChartIds}
         />
       );
 
@@ -91,6 +99,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ chartSpec }) => {
           chartSpec={chartSpec}
           series={series}
           isLoading={isLoading}
+          allChartIds={allChartIds}
         />
       );
 

@@ -12,6 +12,7 @@ import type { Series } from '../../data/types';
 import { useHoverInteraction } from '../../hooks/useHoverInteraction';
 import { useTimeCursorInteraction } from '../../hooks/useTimeCursorInteraction';
 import { useZoomPanInteraction } from '../../hooks/useZoomPanInteraction';
+import { useChartSync } from '../../hooks/useChartSync';
 import { useSharedStateField } from '../../context/SharedStateContext';
 import { TooltipLayer } from '../interaction/TooltipLayer';
 
@@ -19,6 +20,10 @@ interface ScatterChartProps {
   chartSpec: ChartSpec;
   series: Series[];
   isLoading: boolean;
+  /**
+   * Stage 7.7: Все chart_id для определения групп синхронизации
+   */
+  allChartIds?: string[];
 }
 
 /**
@@ -29,6 +34,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
   chartSpec,
   series,
   isLoading,
+  allChartIds,
 }) => {
   // Преобразуем Series[] в формат для Observable Plot
   const plotData = useMemo(() => {
@@ -157,14 +163,23 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const cursorOverlayRef = useRef<SVGSVGElement>(null);
 
+  // Stage 7.7: Определяем синхронизацию для текущего графика
+  const syncInfo = useChartSync({
+    chartSpec,
+    allChartIds,
+  });
+
   // Stage 7.2: hover-интерактивность через shared_state
+  // Stage 7.7: с учетом синхронизации
   const { onMouseMove, onMouseLeave } = useHoverInteraction({
     chartSpec,
     series,
     containerRef,
+    syncHover: syncInfo.syncHover,
   });
 
   // Stage 7.3: time cursor интерактивность через shared_state
+  // Stage 7.7: синхронизация через sync_across (уже работает)
   const timeCursorHandlers = useTimeCursorInteraction({
     chartSpec,
     series,
@@ -175,11 +190,13 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({
   const isTimeCursorDraggingRef = useRef(false);
 
   // Stage 7.4: zoom/pan интерактивность через shared_state
+  // Stage 7.7: с учетом синхронизации
   const zoomPanHandlers = useZoomPanInteraction({
     chartSpec,
     series,
     containerRef,
     isTimeCursorDragging: isTimeCursorDraggingRef.current,
+    syncZoomPan: syncInfo.syncZoomPan,
   });
 
   // Подписка на time_cursor из shared_state

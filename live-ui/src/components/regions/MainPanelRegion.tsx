@@ -52,6 +52,9 @@ export const MainPanelRegion: React.FC<MainPanelRegionProps> = ({
           );
         }
 
+        // Stage 7.7: Получаем все chart_id для синхронизации
+        const allChartIds = chartRefs.map((ref) => ref.chart_id);
+
         // Рендерим ChartRenderer с ChartSpec
         return (
           <div
@@ -66,7 +69,7 @@ export const MainPanelRegion: React.FC<MainPanelRegionProps> = ({
               overflow: 'hidden',
             }}
           >
-            <ChartRenderer chartSpec={chartSpec} />
+            <ChartRenderer chartSpec={chartSpec} allChartIds={allChartIds} />
           </div>
         );
       })}
