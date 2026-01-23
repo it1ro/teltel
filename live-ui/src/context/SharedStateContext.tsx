@@ -1,15 +1,16 @@
 /**
  * SharedStateContext - контекст для централизованного управления состоянием UI
  * Реализует Stage 3: Shared State Engine
+ * Расширен в Stage 7.1: Интерактивные состояния
  *
  * Соответствует layout-контракту:
  * - time_cursor: синхронизация позиции по frameIndex/simTime
  * - selected_run: выбор активного run'а
  *
- * Ограничения Stage 3:
- * - Никаких данных, WebSocket, backend
- * - Никакой пользовательской интерактивности
- * - Только архитектурный механизм shared_state
+ * Stage 7.1 расширения (опциональные):
+ * - interaction_state: zoom и pan состояния
+ * - live_mode: управление воспроизведением
+ * - hover_state: состояние hover на графиках
  */
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
@@ -29,9 +30,60 @@ export interface SelectedRunState {
   source: string | null;
 }
 
+/**
+ * Состояние интерактивности (zoom и pan)
+ * Stage 7.1: опциональное расширение
+ */
+export interface InteractionState {
+  zoom?: {
+    x?: [number, number];
+    y?: [number, number];
+  };
+  pan?: {
+    x?: number;
+    y?: number;
+  };
+}
+
+/**
+ * Состояние live-режима (воспроизведение)
+ * Stage 7.1: опциональное расширение
+ */
+export interface LiveModeState {
+  is_playing: boolean;
+  playback_speed?: number;
+}
+
+/**
+ * Состояние hover на графике
+ * Stage 7.1: опциональное расширение
+ */
+export interface HoverState {
+  chart_id: string;
+  x: number;
+  y: number;
+  data?: unknown;
+}
+
+/**
+ * SharedState - централизованное состояние UI
+ * 
+ * Базовые поля (Stage 3):
+ * - time_cursor: синхронизация позиции по времени
+ * - selected_run: выбор активного run'а
+ * 
+ * Расширения Stage 7.1 (опциональные):
+ * - interaction_state: zoom и pan
+ * - live_mode: управление воспроизведением
+ * - hover_state: состояние hover на графиках
+ */
 export interface SharedState {
   time_cursor?: TimeCursorState;
   selected_run?: SelectedRunState;
+  // Stage 7.1: опциональные расширения для интерактивности
+  interaction_state?: InteractionState;
+  live_mode?: LiveModeState;
+  hover_state?: HoverState | null;
 }
 
 /**
@@ -39,9 +91,14 @@ export interface SharedState {
  */
 interface SharedStateContextValue {
   sharedState: SharedState;
+  // Базовые методы (Stage 3)
   updateTimeCursor: (value: number | null) => void;
   updateTimeCursorAxis: (axis: 'frameIndex' | 'simTime') => void;
   updateSelectedRun: (run_id: string | null, source: string | null) => void;
+  // Stage 7.1: методы для интерактивных состояний
+  updateInteractionState: (state: InteractionState | ((prev: InteractionState | undefined) => InteractionState)) => void;
+  updateLiveMode: (mode: LiveModeState | ((prev: LiveModeState | undefined) => LiveModeState)) => void;
+  updateHoverState: (state: HoverState | null) => void;
   subscribe: (key: keyof SharedState, callback: (value: any) => void) => () => void;
 }
 
@@ -152,6 +209,71 @@ export const SharedStateProvider: React.FC<SharedStateProviderProps> = ({
   );
 
   /**
+   * Обновление interaction_state (Stage 7.1)
+   * Поддерживает как прямое значение, так и функцию обновления
+   */
+  const updateInteractionState = useCallback(
+    (state: InteractionState | ((prev: InteractionState | undefined) => InteractionState)) => {
+      setSharedState((prev) => {
+        const newInteractionState =
+          typeof state === 'function' ? state(prev.interaction_state) : state;
+        const newState = {
+          ...prev,
+          interaction_state: newInteractionState,
+        };
+        // Уведомляем подписчиков
+        const callbacks = subscribersRef.current.get('interaction_state');
+        if (callbacks) {
+          callbacks.forEach((callback) => callback(newState.interaction_state));
+        }
+        return newState;
+      });
+    },
+    []
+  );
+
+  /**
+   * Обновление live_mode (Stage 7.1)
+   * Поддерживает как прямое значение, так и функцию обновления
+   */
+  const updateLiveMode = useCallback(
+    (mode: LiveModeState | ((prev: LiveModeState | undefined) => LiveModeState)) => {
+      setSharedState((prev) => {
+        const newLiveMode = typeof mode === 'function' ? mode(prev.live_mode) : mode;
+        const newState = {
+          ...prev,
+          live_mode: newLiveMode,
+        };
+        // Уведомляем подписчиков
+        const callbacks = subscribersRef.current.get('live_mode');
+        if (callbacks) {
+          callbacks.forEach((callback) => callback(newState.live_mode));
+        }
+        return newState;
+      });
+    },
+    []
+  );
+
+  /**
+   * Обновление hover_state (Stage 7.1)
+   */
+  const updateHoverState = useCallback((state: HoverState | null) => {
+    setSharedState((prev) => {
+      const newState = {
+        ...prev,
+        hover_state: state,
+      };
+      // Уведомляем подписчиков
+      const callbacks = subscribersRef.current.get('hover_state');
+      if (callbacks) {
+        callbacks.forEach((callback) => callback(newState.hover_state));
+      }
+      return newState;
+    });
+  }, []);
+
+  /**
    * Подписка на изменения shared_state
    * Возвращает функцию отписки
    */
@@ -178,6 +300,9 @@ export const SharedStateProvider: React.FC<SharedStateProviderProps> = ({
     updateTimeCursor,
     updateTimeCursorAxis,
     updateSelectedRun,
+    updateInteractionState,
+    updateLiveMode,
+    updateHoverState,
     subscribe,
   };
 
@@ -210,8 +335,15 @@ export const useSharedState = (): SharedStateContextValue => {
 export const useSharedStateField = <K extends keyof SharedState>(
   key: K
 ): [SharedState[K], (value: SharedState[K]) => void] => {
-  const { sharedState, updateTimeCursor, updateTimeCursorAxis, updateSelectedRun } =
-    useSharedState();
+  const {
+    sharedState,
+    updateTimeCursor,
+    updateTimeCursorAxis,
+    updateSelectedRun,
+    updateInteractionState,
+    updateLiveMode,
+    updateHoverState,
+  } = useSharedState();
 
   const value = sharedState[key];
 
@@ -228,9 +360,29 @@ export const useSharedStateField = <K extends keyof SharedState>(
       } else if (key === 'selected_run') {
         const selectedRun = newValue as SelectedRunState;
         updateSelectedRun(selectedRun.run_id, selectedRun.source);
+      } else if (key === 'interaction_state') {
+        const interactionState = newValue as InteractionState | undefined;
+        updateInteractionState(interactionState || {});
+      } else if (key === 'live_mode') {
+        const liveMode = newValue as LiveModeState | undefined;
+        if (liveMode) {
+          updateLiveMode(liveMode);
+        }
+      } else if (key === 'hover_state') {
+        const hoverState = newValue as HoverState | null | undefined;
+        updateHoverState(hoverState ?? null);
       }
     },
-    [key, sharedState, updateTimeCursor, updateTimeCursorAxis, updateSelectedRun]
+    [
+      key,
+      sharedState,
+      updateTimeCursor,
+      updateTimeCursorAxis,
+      updateSelectedRun,
+      updateInteractionState,
+      updateLiveMode,
+      updateHoverState,
+    ]
   );
 
   return [value, updateValue];
