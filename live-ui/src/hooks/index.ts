@@ -5,3 +5,4 @@
 export * from './useDataLayer';
 export * from './useChartData';
 export * from './useHoverInteraction';
+export * from './useTimeCursorInteraction';
