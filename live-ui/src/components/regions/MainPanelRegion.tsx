@@ -1,17 +1,22 @@
 /**
  * MainPanelRegion - компонент для отображения main panel региона
- * Рендерит grid layout с заглушками графиков
+ * Рендерит grid layout с графиками через ChartRenderer
  */
 
 import React from 'react';
-import type { MainPanelRegion as MainPanelRegionType } from '../../types';
+import type { MainPanelRegion as MainPanelRegionType, ChartSpec } from '../../types';
+import { ChartRenderer } from '../charts/ChartRenderer';
 
 interface MainPanelRegionProps {
   spec: MainPanelRegionType;
+  charts?: Record<string, ChartSpec>;
 }
 
-export const MainPanelRegion: React.FC<MainPanelRegionProps> = ({ spec }) => {
-  const { grid_config, charts } = spec;
+export const MainPanelRegion: React.FC<MainPanelRegionProps> = ({
+  spec,
+  charts,
+}) => {
+  const { grid_config, charts: chartRefs } = spec;
   const columns = grid_config.columns;
   const gap = grid_config.gap || '16px';
   const rows = grid_config.rows === 'auto' ? undefined : grid_config.rows;
@@ -33,13 +38,38 @@ export const MainPanelRegion: React.FC<MainPanelRegionProps> = ({ spec }) => {
         overflow: 'auto',
       }}
     >
-      {charts.map((chart) => (
-        <ChartPlaceholder
-          key={chart.chart_id}
-          chartId={chart.chart_id}
-          span={chart.span}
-        />
-      ))}
+      {chartRefs.map((chartRef) => {
+        const chartSpec = charts?.[chartRef.chart_id];
+
+        // Если ChartSpec не найден, показываем placeholder
+        if (!chartSpec) {
+          return (
+            <ChartPlaceholder
+              key={chartRef.chart_id}
+              chartId={chartRef.chart_id}
+              span={chartRef.span}
+            />
+          );
+        }
+
+        // Рендерим ChartRenderer с ChartSpec
+        return (
+          <div
+            key={chartRef.chart_id}
+            style={{
+              gridColumn: `span ${chartRef.span[0]}`,
+              gridRow: `span ${chartRef.span[1]}`,
+              border: '1px solid #e0e0e0',
+              borderRadius: '4px',
+              backgroundColor: '#fff',
+              minHeight: '200px',
+              overflow: 'hidden',
+            }}
+          >
+            <ChartRenderer chartSpec={chartSpec} />
+          </div>
+        );
+      })}
     </div>
   );
 };
