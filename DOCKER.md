@@ -85,9 +85,25 @@ teltel контейнер поддерживает следующие перем
 Live UI контейнер поддерживает следующие переменные окружения:
 
 - `VITE_WS_URL` - WebSocket URL для подключения к backend (по умолчанию `ws://localhost:8081/ws`)
+  - **Важно:** В Docker используется внешний адрес для браузерных подключений (`ws://localhost:8081/ws`)
+  - Для внутренних подключений можно использовать `ws://teltel:8080/ws`, но браузер не может подключиться к внутреннему адресу Docker сети
 - `VITE_LAYOUT_URL` - URL для загрузки layout из backend (опционально)
+  - По умолчанию используется статический файл `/example-layout.json`
 
-Переменные используются для генерации `config.js` через `live-ui/docker-entrypoint.sh` при старте контейнера.
+**Как работает конфигурация:**
+1. Переменные окружения передаются в контейнер через `docker-compose.yml`
+2. При старте контейнера `docker-entrypoint.sh` генерирует `config.js` из переменных окружения
+3. `config.js` загружается в браузере перед React и устанавливает `window.__ENV__`
+4. Приложение использует `window.__ENV__` для runtime конфигурации
+
+**Пример конфигурации:**
+```yaml
+environment:
+  - VITE_WS_URL=ws://localhost:8081/ws
+  - VITE_LAYOUT_URL=http://localhost:8081/api/layout
+```
+
+**Примечание:** Для production build переменные `VITE_*` также могут быть инжектированы на этапе сборки (build-time), но runtime конфигурация через `config.js` имеет приоритет.
 
 ## Валидация в Docker окружении
 
@@ -241,6 +257,147 @@ curl http://localhost:3000/health
 2. **ClickHouse:** Автоматически запускается и настраивается
 3. **Конфигурация:** Через ENV переменные вместо флагов
 4. **Изоляция:** Полная изоляция окружения от хоста
+
+## Примеры конфигураций docker-compose
+
+### Базовая конфигурация (production)
+
+```yaml
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: teltel-clickhouse
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - teltel-network
+
+  teltel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teltel
+    ports:
+      - "8081:8080"
+    environment:
+      - TELTEL_HTTP_PORT=8080
+      - TELTEL_CLICKHOUSE_URL=http://clickhouse:8123
+      - TELTEL_BATCHER_ENABLED=true
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - teltel-network
+
+  live-ui:
+    build:
+      context: ./live-ui
+      dockerfile: Dockerfile
+    container_name: teltel-live-ui
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_WS_URL=ws://localhost:8081/ws
+    depends_on:
+      teltel:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - teltel-network
+
+networks:
+  teltel-network:
+    driver: bridge
+```
+
+### Конфигурация с кастомными портами
+
+```yaml
+services:
+  teltel:
+    # ... остальная конфигурация
+    ports:
+      - "9090:8080"  # Кастомный внешний порт
+
+  live-ui:
+    # ... остальная конфигурация
+    ports:
+      - "4000:80"  # Кастомный внешний порт
+    environment:
+      - VITE_WS_URL=ws://localhost:9090/ws  # Соответствует новому порту backend
+```
+
+### Конфигурация для разработки (с volume mounts)
+
+```yaml
+services:
+  live-ui:
+    build:
+      context: ./live-ui
+      dockerfile: Dockerfile
+    container_name: teltel-live-ui-dev
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_WS_URL=ws://localhost:8081/ws
+    volumes:
+      # Монтируем исходный код для разработки (требует пересборки)
+      - ./live-ui/src:/app/src:ro
+      - ./live-ui/public:/app/public:ro
+    depends_on:
+      teltel:
+        condition: service_healthy
+    networks:
+      - teltel-network
+```
+
+**Примечание:** Volume mounts для разработки требуют пересборки образа или использования dev-режима локально. Для production используйте собранный образ.
+
+### Конфигурация с несколькими окружениями
+
+Создайте отдельные файлы для разных окружений:
+
+**docker-compose.prod.yml:**
+```yaml
+services:
+  live-ui:
+    environment:
+      - VITE_WS_URL=ws://production.example.com/ws
+      - VITE_LAYOUT_URL=https://production.example.com/api/layout
+```
+
+**docker-compose.dev.yml:**
+```yaml
+services:
+  live-ui:
+    environment:
+      - VITE_WS_URL=ws://localhost:8081/ws
+```
+
+**Использование:**
+```bash
+# Production
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Development
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
 
 ## Интеграция с Makefile
 
