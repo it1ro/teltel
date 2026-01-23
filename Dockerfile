@@ -24,9 +24,6 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /build/teltel .
 
-# Copy web directory with static files
-COPY --from=builder /build/web /app/web
-
 # Copy entrypoint script
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
