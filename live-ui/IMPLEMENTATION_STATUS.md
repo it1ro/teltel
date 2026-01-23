@@ -156,6 +156,22 @@ live-ui/
 
 ## 🎯 Definition of Done
 
+### Этап 6
+
+- [x] EventTimelineChart реализован с D3 рендерингом
+- [x] События визуализируются как маркеры на временной оси
+- [x] X-ось синхронизирована с другими графиками (frameIndex/simTime)
+- [x] Y-ось категориальная (type/channel) или фиксированная
+- [x] Color, Shape, Size mappings поддерживаются
+- [x] Real-time обновления без мерцания
+- [x] ChartSpec полностью управляет визуализацией
+- [x] Интеграция в ChartRenderer
+- [x] Обработка ошибок для невалидных ChartSpec
+- [x] Архитектурные границы не нарушены
+- [x] Никакой интерактивности (Stage 6 ограничение)
+- [x] Никаких изменений data-layer
+- [x] Никаких изменений shared_state
+
 ### Этап 5
 
 - [x] ChartRenderer принимает ChartSpec и делегирует рендер
@@ -236,10 +252,30 @@ live-ui/
   - Передача charts из layout
   - Рендеринг графиков по ChartSpec
 
+### Этап 6: Event Timeline
+
+- [x] **EventTimelineChart** (`src/components/charts/EventTimelineChart.tsx`)
+  - Визуализация дискретных событий на временной оси через D3
+  - X-ось: frameIndex или simTime (синхронизирована с другими графиками)
+  - Y-ось: категориальная (по type или channel) или фиксированная линия
+  - Color mapping: по channel или type
+  - Shape mapping: по type (если указано)
+  - Size mapping: опционально (по payload)
+  - Real-time обновления без мерцания
+  - Window-ограничение данных
+
+- [x] **Интеграция в ChartRenderer**
+  - ChartRenderer поддерживает тип `event_timeline`
+  - Делегирование рендера EventTimelineChart
+  - Обработка ошибок для невалидных ChartSpec
+
+- [x] **D3 зависимость**
+  - Добавлена в package.json
+  - Используется только для кастомного рендера event_timeline
+
 ## 🚫 Что НЕ реализовано (следующие этапы)
 
 - ❌ Пользовательская интерактивность (click, drag, zoom, hover, tooltip)
-- ❌ Event Timeline (Stage 6)
 - ❌ Run Overview / Comparison
 - ❌ Подключение компонентов к shared_state для синхронизации (будет в следующих этапах)
 
@@ -254,6 +290,9 @@ live-ui/
 - ✅ Chart Engine не знает про WebSocket
 - ✅ Chart Engine не знает про shared_state
 - ✅ Chart Engine является чистым визуальным слоем
+- ✅ EventTimelineChart использует D3 только для кастомного рендера
+- ✅ Никаких изменений data-layer (Stage 6)
+- ✅ Никаких изменений shared_state (Stage 6)
 
 ## 🧪 Проверка
 
@@ -412,6 +451,64 @@ const chartSpec: ChartSpec = {
 // 2. Определяет тип графика (time_series)
 // 3. Делегирует рендер TimeSeriesChart
 // 4. TimeSeriesChart рендерит через Observable Plot
+```
+
+### Этап 6: Event Timeline
+
+```typescript
+import { ChartRenderer } from './components/charts/ChartRenderer';
+import type { ChartSpec } from './types';
+
+// Event Timeline для визуализации дискретных событий
+
+const eventTimelineSpec: ChartSpec = {
+  chart_id: 'event_timeline_1',
+  version: '1.0',
+  type: 'event_timeline',
+  data_source: {
+    type: 'event_stream',
+    filters: {
+      types: ['run.start', 'run.end', 'frame.start'],
+    },
+    window: {
+      type: 'frames',
+      size: 1000,
+    },
+  },
+  mappings: {
+    x: { field: 'frameIndex', scale: 'linear' },
+    y: { field: 'type' }, // категориальная ось по типу события
+    color: {
+      field: 'channel',
+      scale: 'ordinal',
+      palette: ['#1f77b4', '#ff7f0e', '#2ca02c'],
+    },
+    shape: {
+      field: 'type',
+      mapping: {
+        'run.start': 'circle',
+        'run.end': 'square',
+        'frame.start': 'triangle',
+      },
+    },
+  },
+  visual: {
+    stroke: '#333',
+    strokeWidth: 1,
+    opacity: 0.8,
+  },
+  title: 'Event Timeline',
+  axes: {
+    x: { label: 'Frame Index', grid: true },
+    y: { label: 'Event Type', grid: true },
+  },
+};
+
+// ChartRenderer автоматически:
+// 1. Получает данные через useChartData(chartSpec, dataLayer)
+// 2. Определяет тип графика (event_timeline)
+// 3. Делегирует рендер EventTimelineChart
+// 4. EventTimelineChart рендерит через D3 SVG
 ```
 
 ## 🔗 Ссылки
