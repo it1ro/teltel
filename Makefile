@@ -32,7 +32,7 @@ docker-build:
 docker-up:
 	@echo "Starting docker-compose stack..."
 	@docker-compose up -d
-	@echo "Stack started. teltel: http://localhost:8081"
+	@echo "Stack started. Live UI: http://localhost:3000, Backend API: http://localhost:8081"
 
 # Stop docker-compose stack
 docker-down:
@@ -125,7 +125,7 @@ help:
 	@echo "  make build          - Build teltel binary locally"
 	@echo "  make run            - Run teltel locally (without Docker)"
 	@echo "  make docker-build   - Build Docker image"
-	@echo "  make docker-up      - Start docker-compose stack (teltel + ClickHouse)"
+	@echo "  make docker-up      - Start docker-compose stack (teltel + live-ui + ClickHouse)"
 	@echo "  make docker-down    - Stop docker-compose stack"
 	@echo ""
 	@echo "Validation:"
