@@ -61,6 +61,8 @@
 - [docs/03-event-model.md](docs/03-event-model.md) — модель событий
 - [docs/04-eventbus.md](docs/04-eventbus.md) — EventBus
 - [docs/05-ingest-and-storage.md](docs/05-ingest-and-storage.md) — ingest и storage
+- [LIVE_UI_ARCHITECTURE_DESIGN.md](LIVE_UI_ARCHITECTURE_DESIGN.md) — архитектура Live UI
+- [live-ui/IMPLEMENTATION_STATUS.md](live-ui/IMPLEMENTATION_STATUS.md) — статус реализации Live UI
 
 **API и интеграция:**
 - [docs/API.md](docs/API.md) — полная документация API
@@ -118,6 +120,8 @@ make docker-up
 - [docs/02-architecture.md](docs/02-architecture.md) — архитектура системы
 - [docs/03-event-model.md](docs/03-event-model.md) — модель событий
 - [docs/04-eventbus.md](docs/04-eventbus.md) — EventBus
+- [LIVE_UI_ARCHITECTURE_DESIGN.md](LIVE_UI_ARCHITECTURE_DESIGN.md) — архитектура Live UI
+- [live-ui/IMPLEMENTATION_STATUS.md](live-ui/IMPLEMENTATION_STATUS.md) — статус реализации Live UI
 
 **Хочу интегрировать с Cursor AI:**
 - [docs/07-cursor-workflow.md](docs/07-cursor-workflow.md) — работа с Cursor AI
