@@ -74,6 +74,8 @@ export class WSClient {
     this.setState('connecting');
 
     try {
+      // WebSocket API автоматически преобразует относительный путь (например, /ws)
+      // в абсолютный URL на основе текущего origin (например, ws://localhost:3000/ws)
       const ws = new WebSocket(this.options.url);
       this.ws = ws;
 
