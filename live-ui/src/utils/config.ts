@@ -1,47 +1,14 @@
 /**
  * Конфигурация приложения
- * Поддерживает build-time (Vite) и runtime конфигурацию
+ * Использует относительные пути для работы через nginx proxy
  */
 
 /**
- * Интерфейс для runtime конфигурации (window.__ENV__)
- */
-interface RuntimeConfig {
-  VITE_WS_URL?: string;
-  VITE_LAYOUT_URL?: string;
-}
-
-/**
- * Расширение Window для runtime конфигурации
- */
-declare global {
-  interface Window {
-    __ENV__?: RuntimeConfig;
-  }
-}
-
-/**
- * Получение WebSocket URL из конфигурации
- * Приоритет:
- * 1. window.__ENV__.VITE_WS_URL (runtime, production)
- * 2. import.meta.env.VITE_WS_URL (build-time, Vite)
- * 3. ws://localhost:8080/ws (fallback для dev)
+ * Получение WebSocket URL
+ * Возвращает относительный путь для работы через nginx proxy
  */
 export function getWebSocketUrl(): string {
-  // Runtime конфигурация (для production через config.js)
-  if (typeof window !== 'undefined' && window.__ENV__) {
-    if (window.__ENV__.VITE_WS_URL) {
-      return window.__ENV__.VITE_WS_URL;
-    }
-  }
-
-  // Build-time конфигурация (Vite env vars)
-  if (import.meta.env.VITE_WS_URL) {
-    return import.meta.env.VITE_WS_URL;
-  }
-
-  // Fallback для dev-режима
-  return 'ws://localhost:8080/ws';
+  return '/ws';
 }
 
 /**
@@ -69,16 +36,10 @@ export function getLayoutUrl(): string | undefined {
 
 /**
  * Получение базового URL для HTTP API
- * Извлекается из WebSocket URL (ws://host:port -> http://host:port)
+ * Возвращает пустую строку для использования относительных путей
  */
 export function getApiBaseUrl(): string {
-  const wsUrl = getWebSocketUrl();
-  
-  // Преобразуем ws:// или wss:// в http:// или https://
-  const httpUrl = wsUrl.replace(/^ws/, 'http');
-  
-  // Убираем /ws из конца если есть
-  return httpUrl.replace(/\/ws$/, '');
+  return '';
 }
 
 /**
