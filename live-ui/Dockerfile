@@ -14,10 +14,9 @@ RUN npm ci
 COPY . .
 
 # Build-time переменные окружения (Vite инжектирует их в код)
-ARG VITE_WS_URL
+# VITE_WS_URL больше не используется - WebSocket использует относительный путь /ws
 ARG VITE_LAYOUT_URL
 
-ENV VITE_WS_URL=${VITE_WS_URL}
 ENV VITE_LAYOUT_URL=${VITE_LAYOUT_URL}
 
 # Собираем production build
@@ -40,7 +39,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 # Runtime переменные окружения (для config.js)
-ENV VITE_WS_URL=""
+# VITE_WS_URL больше не используется - WebSocket использует относительный путь /ws
 ENV VITE_LAYOUT_URL=""
 
 EXPOSE 80
