@@ -11,9 +11,9 @@ make docker-up
 ```
 
 Это запустит:
-- **teltel** (backend) на http://localhost:8081 (API и WebSocket, без UI)
+- **live-ui** (Live UI v2) на http://localhost:3000 (единственный пользовательский интерфейс, единая точка входа)
+- **teltel** (backend) доступен через nginx proxy на http://localhost:3000/api/* (только внутри Docker сети)
 - **ClickHouse** на http://localhost:8123
-- **live-ui** (Live UI v2) на http://localhost:3000 (единственный пользовательский интерфейс)
 
 ### Остановка стека
 
@@ -45,11 +45,11 @@ docker-compose logs -f live-ui
 
 #### teltel
 
-- **Порт:** 8081 (внешний) -> 8080 (внутренний)
+- **Порт:** 8080 (только внутренний, недоступен извне)
 - **Образ:** собирается из `Dockerfile`
 - **Health check:** `GET /api/health` каждые 10 секунд
 - **Зависимости:** ожидает готовности ClickHouse
-- **Примечание:** Backend предоставляет только API и WebSocket endpoints. UI доступен через отдельный сервис live-ui.
+- **Примечание:** Backend предоставляет только API и WebSocket endpoints. Доступен только внутри Docker сети через `http://teltel:8080`. Внешний доступ к API осуществляется через nginx proxy в live-ui на `http://localhost:3000/api/*`.
 
 #### clickhouse
 
@@ -64,8 +64,10 @@ docker-compose logs -f live-ui
 - **Образ:** собирается из `live-ui/Dockerfile`
 - **Health check:** `GET /health` каждые 10 секунд
 - **Зависимости:** ожидает готовности teltel
-- **Конфигурация:** WebSocket URL настраивается через `VITE_WS_URL` (по умолчанию `ws://localhost:8081/ws`)
-- **Примечание:** Live UI v2 является единственным пользовательским интерфейсом проекта. Legacy UI (web/) удалён.
+- **Примечание:** Live UI v2 является единственным пользовательским интерфейсом проекта. Legacy UI (web/) удалён. nginx в live-ui контейнере работает как единая точка входа для браузера:
+  - `/` → React Build (статический контент)
+  - `/api/*` → proxy_pass → `http://teltel:8080/api/*`
+  - `/ws` → proxy_pass → `ws://teltel:8080/ws` (WebSocket upgrade)
 
 ## Конфигурация через переменные окружения
 
@@ -84,28 +86,16 @@ teltel контейнер поддерживает следующие перем
 
 #### live-ui
 
-Live UI контейнер поддерживает следующие переменные окружения:
+Live UI использует относительные пути для подключения к backend через nginx proxy:
+- WebSocket: `/ws` (проксируется к `ws://teltel:8080/ws`)
+- HTTP API: `/api/*` (проксируется к `http://teltel:8080/api/*`)
 
-- `VITE_WS_URL` - WebSocket URL для подключения к backend (по умолчанию `ws://localhost:8081/ws`)
-  - **Важно:** В Docker используется внешний адрес для браузерных подключений (`ws://localhost:8081/ws`)
-  - Для внутренних подключений можно использовать `ws://teltel:8080/ws`, но браузер не может подключиться к внутреннему адресу Docker сети
-- `VITE_LAYOUT_URL` - URL для загрузки layout из backend (опционально)
-  - По умолчанию используется статический файл `/example-layout.json`
+**Архитектура nginx proxy:**
+- nginx работает как единая точка входа для браузера
+- Все запросы идут через `http://localhost:3000` (единый origin, нет CORS проблем)
+- Backend доступен только внутри Docker сети через `http://teltel:8080`
 
-**Как работает конфигурация:**
-1. Переменные окружения передаются в контейнер через `docker-compose.yml`
-2. При старте контейнера `docker-entrypoint.sh` генерирует `config.js` из переменных окружения
-3. `config.js` загружается в браузере перед React и устанавливает `window.__ENV__`
-4. Приложение использует `window.__ENV__` для runtime конфигурации
-
-**Пример конфигурации:**
-```yaml
-environment:
-  - VITE_WS_URL=ws://localhost:8081/ws
-  - VITE_LAYOUT_URL=http://localhost:8081/api/layout
-```
-
-**Примечание:** Для production build переменные `VITE_*` также могут быть инжектированы на этапе сборки (build-time), но runtime конфигурация через `config.js` имеет приоритет.
+**Примечание:** После миграции на относительные пути (Этапы 4-5 roadmap) runtime конфигурация через `VITE_WS_URL` больше не требуется.
 
 ## Валидация в Docker окружении
 
@@ -118,15 +108,15 @@ make validate-docker
 ### Валидация Cursor workflow
 
 ```bash
-TELTEL_BASE_URL=http://localhost:8081 CLICKHOUSE_URL=http://localhost:8123 ./scripts/validate_cursor_workflow.sh
+TELTEL_BASE_URL=http://localhost:3000/api CLICKHOUSE_URL=http://localhost:8123 ./scripts/validate_cursor_workflow.sh
 ```
 
 ### Нагрузочное тестирование
 
 ```bash
-TELTEL_BASE_URL=http://localhost:8081 ./scripts/load_test.sh 10000 60
-TELTEL_BASE_URL=http://localhost:8081 ./scripts/burst_test.sh 1000 50000 10 60
-TELTEL_BASE_URL=http://localhost:8081 ./scripts/multi_run_test.sh 10 1000 60
+TELTEL_BASE_URL=http://localhost:3000/api ./scripts/load_test.sh 10000 60
+TELTEL_BASE_URL=http://localhost:3000/api ./scripts/burst_test.sh 1000 50000 10 60
+TELTEL_BASE_URL=http://localhost:3000/api ./scripts/multi_run_test.sh 10 1000 60
 ```
 
 ## Отладка
@@ -180,7 +170,8 @@ docker-compose build --no-cache live-ui
 
 Сервисы общаются через Docker сеть `teltel-network`. 
 - teltel обращается к ClickHouse по имени сервиса: `http://clickhouse:8123`
-- live-ui подключается к teltel через WebSocket по внешнему адресу: `ws://localhost:8081/ws` (для браузерных подключений)
+- live-ui (nginx) проксирует запросы к teltel по внутреннему адресу: `http://teltel:8080`
+- Браузер обращается только к `http://localhost:3000` (единая точка входа через nginx proxy)
 
 ## Очистка
 
@@ -206,13 +197,14 @@ docker rmi clickhouse/clickhouse-server:latest
 
 ## Troubleshooting
 
-### Порт 8081 уже занят
+### Порт 3000 уже занят
 
 Измените порт в `docker-compose.yml`:
 
 ```yaml
-ports:
-  - "8082:8080"  # Используйте другой порт
+live-ui:
+  ports:
+    - "3001:80"  # Используйте другой порт
 ```
 
 ### ClickHouse не запускается
@@ -237,8 +229,9 @@ docker-compose ps
 
 Проверьте, что:
 1. Backend (teltel) запущен и здоров: `docker-compose ps`
-2. WebSocket URL правильно настроен в `VITE_WS_URL` (должен быть внешний адрес для браузера: `ws://localhost:8081/ws`)
-3. Откройте браузерную консоль для проверки ошибок подключения
+2. nginx proxy настроен корректно (проверьте `live-ui/nginx.conf`)
+3. WebSocket доступен через nginx proxy: `ws://localhost:3000/ws`
+4. Откройте браузерную консоль для проверки ошибок подключения
 
 ### Live UI не отображается
 
@@ -255,10 +248,11 @@ curl http://localhost:3000/health
 
 ## Отличия от локального запуска
 
-1. **Порт:** Docker использует 8081 вместо 8080 (чтобы избежать конфликтов)
-2. **ClickHouse:** Автоматически запускается и настраивается
-3. **Конфигурация:** Через ENV переменные вместо флагов
-4. **Изоляция:** Полная изоляция окружения от хоста
+1. **Архитектура:** Docker использует nginx proxy в live-ui как единую точку входа (нет прямого доступа к backend из браузера)
+2. **Порт:** Backend доступен только внутри Docker сети (порт 8080), внешний доступ через `http://localhost:3000/api/*`
+3. **ClickHouse:** Автоматически запускается и настраивается
+4. **Конфигурация:** Через ENV переменные вместо флагов
+5. **Изоляция:** Полная изоляция окружения от хоста
 
 ## Примеры конфигураций docker-compose
 
@@ -286,8 +280,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: teltel
-    ports:
-      - "8081:8080"
+    # Убран внешний порт - backend доступен только через nginx proxy
+    # Внутренний адрес: http://teltel:8080 (для nginx proxy)
+    # Внешний доступ: http://localhost:3000/api/* (через nginx proxy)
     environment:
       - TELTEL_HTTP_PORT=8080
       - TELTEL_CLICKHOUSE_URL=http://clickhouse:8123
@@ -310,8 +305,8 @@ services:
     container_name: teltel-live-ui
     ports:
       - "3000:80"
-    environment:
-      - VITE_WS_URL=ws://localhost:8081/ws
+    # Убрана переменная VITE_WS_URL - используются относительные пути (/ws)
+    # После миграции на относительные пути (Этапы 4, 5) runtime конфигурация не нужна
     depends_on:
       teltel:
         condition: service_healthy
@@ -332,17 +327,13 @@ networks:
 
 ```yaml
 services:
-  teltel:
-    # ... остальная конфигурация
-    ports:
-      - "9090:8080"  # Кастомный внешний порт
-
   live-ui:
     # ... остальная конфигурация
     ports:
       - "4000:80"  # Кастомный внешний порт
-    environment:
-      - VITE_WS_URL=ws://localhost:9090/ws  # Соответствует новому порту backend
+    # Относительные пути работают с любым портом
+    # WebSocket: ws://localhost:4000/ws
+    # HTTP API: http://localhost:4000/api/*
 ```
 
 ### Конфигурация для разработки (с volume mounts)
@@ -356,8 +347,7 @@ services:
     container_name: teltel-live-ui-dev
     ports:
       - "3000:80"
-    environment:
-      - VITE_WS_URL=ws://localhost:8081/ws
+    # Относительные пути работают без дополнительной конфигурации
     volumes:
       # Монтируем исходный код для разработки (требует пересборки)
       - ./live-ui/src:/app/src:ro
@@ -373,33 +363,9 @@ services:
 
 ### Конфигурация с несколькими окружениями
 
-Создайте отдельные файлы для разных окружений:
+После миграции на относительные пути (Этапы 4-5) конфигурация через environment variables больше не требуется. Все запросы идут через относительные пути (`/api/*`, `/ws`), которые работают одинаково в любом окружении.
 
-**docker-compose.prod.yml:**
-```yaml
-services:
-  live-ui:
-    environment:
-      - VITE_WS_URL=ws://production.example.com/ws
-      - VITE_LAYOUT_URL=https://production.example.com/api/layout
-```
-
-**docker-compose.dev.yml:**
-```yaml
-services:
-  live-ui:
-    environment:
-      - VITE_WS_URL=ws://localhost:8081/ws
-```
-
-**Использование:**
-```bash
-# Production
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# Development
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-```
+**Примечание:** Для разных окружений достаточно изменить только порт live-ui или доменное имя, относительные пути остаются неизменными.
 
 ## Интеграция с Makefile
 
