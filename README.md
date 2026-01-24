@@ -107,9 +107,9 @@ make docker-up
 ```
 
 Это запустит:
-- **teltel backend** на http://localhost:8081 (API и WebSocket)
+- **Live UI v2** на http://localhost:3000 (единственный пользовательский интерфейс, единая точка входа)
+- **teltel backend** доступен через nginx proxy на http://localhost:3000/api/* (только внутри Docker сети)
 - **ClickHouse** на http://localhost:8123
-- **Live UI v2** на http://localhost:3000 (единственный пользовательский интерфейс)
 
 **Важно:** Live UI v2 является единственным пользовательским интерфейсом проекта. Legacy UI (web/) удалён. Все функции доступны в Live UI v2 на http://localhost:3000.
 

@@ -1,7 +1,8 @@
 # План Docker-интеграции для nginx proxy
 
 **Дата создания:** 2024  
-**Статус:** ✅ Реализовано  
+**Дата завершения:** 2024  
+**Статус:** ✅ Завершено  
 **Этап:** Этап 3 из roadmap "nginx proxy и fetch API"
 
 ---
@@ -104,30 +105,58 @@ live-ui:
 
 ### До изменений (AS-IS)
 
+```mermaid
+graph TB
+    Browser[Браузер] -->|http://localhost:3000| LiveUI[Live UI Container<br/>nginx:80]
+    Browser -->|ws://localhost:8081/ws| TeltelExt[Teltel Container<br/>:8081 внешний]
+    Browser -->|http://localhost:8081/api/*| TeltelExt
+    LiveUI -->|Статика| StaticFiles[React Build]
+    TeltelExt -->|:8080 внутренний| TeltelInt[Teltel Backend<br/>:8080]
+    
+    subgraph DockerNetwork[Docker Network: teltel-network]
+        LiveUI
+        TeltelInt
+        TeltelExt
+    end
+    
+    style Browser fill:#e1f5ff
+    style LiveUI fill:#fff4e1
+    style TeltelExt fill:#ffe1e1
+    style TeltelInt fill:#ffe1e1
+    style StaticFiles fill:#e8f5e9
+    style DockerNetwork fill:#f3e5f5
 ```
-Браузер
-  ├─> http://localhost:3000 → Live UI (nginx:80)
-  ├─> ws://localhost:8081/ws → Teltel Backend (:8081 внешний)
-  └─> http://localhost:8081/api/* → Teltel Backend (:8081 внешний)
 
-Docker Network (teltel-network)
-  ├─> teltel:8080 (внутренний)
-  └─> live-ui:80 (внутренний)
-```
+**Проблемы:**
+- Разные origin (CORS)
+- Прямое обращение браузера к backend
+- Зависимость от внешнего порта backend
 
 ### После изменений (TO-BE)
 
+```mermaid
+graph TB
+    Browser[Браузер] -->|http://localhost:3000| LiveUI[Live UI Container<br/>nginx:80]
+    LiveUI -->|/api/* proxy| TeltelInt[Teltel Backend<br/>:8080]
+    LiveUI -->|/ws proxy| TeltelInt
+    LiveUI -->|Статика| StaticFiles[React Build]
+    
+    subgraph DockerNetwork[Docker Network: teltel-network]
+        LiveUI
+        TeltelInt
+    end
+    
+    style Browser fill:#e1f5ff
+    style LiveUI fill:#fff4e1
+    style TeltelInt fill:#ffe1e1
+    style StaticFiles fill:#e8f5e9
+    style DockerNetwork fill:#f3e5f5
 ```
-Браузер
-  └─> http://localhost:3000 → Live UI (nginx:80)
-        ├─> / → React Build (статический контент)
-        ├─> /api/* → proxy_pass → teltel:8080/api/*
-        └─> /ws → proxy_pass → teltel:8080/ws
 
-Docker Network (teltel-network)
-  ├─> teltel:8080 (только внутренний, недоступен извне)
-  └─> live-ui:80 (внутренний + внешний :3000)
-```
+**Преимущества:**
+- Единый origin (нет CORS)
+- nginx как единая точка входа
+- Backend доступен только внутри Docker сети
 
 ---
 
@@ -258,12 +287,41 @@ Docker Network (teltel-network)
 ## Статус реализации
 
 - [x] Создан план изменений
-- [x] Внесены изменения в `docker-compose.yml`
-- [x] Обновлён `Makefile`
-- [x] Создана документация
-- [x] Созданы атомарные коммиты
-- [x] Смержено в develop
+- [x] Внесены изменения в `docker-compose.yml` (убраны порт 8081 и VITE_WS_URL)
+- [x] Обновлён `Makefile` (validate-docker использует http://localhost:3000/api)
+- [x] Обновлена документация:
+  - [x] `DOCKER.md` — убраны упоминания порта 8081 и VITE_WS_URL, описана новая архитектура nginx proxy
+  - [x] `README.md` — обновлена информация о Docker запуске
+- [x] Проверены все скрипты на использование нового API
+- [x] Создана документация архитектуры
 
 ---
 
-**Примечание:** Изменения в `docker-compose.yml` требуют завершения Этапов 2, 4, 5 для полной работоспособности системы.
+## Выполненные изменения
+
+### 1. docker-compose.yml ✅
+
+- ✅ Убран внешний порт `8081:8080` из сервиса `teltel`
+- ✅ Убрана переменная `VITE_WS_URL` из environment секции `live-ui`
+- ✅ Добавлены комментарии о новой архитектуре nginx proxy
+
+### 2. Makefile ✅
+
+- ✅ Обновлён `validate-docker`: использует `http://localhost:3000/api`
+- ✅ Обновлено сообщение в `docker-up`: "Backend API: http://localhost:3000/api/* (через nginx proxy)"
+
+### 3. Документация ✅
+
+- ✅ `DOCKER.md`: полностью обновлён с описанием новой архитектуры
+- ✅ `README.md`: обновлена информация о Docker запуске
+- ✅ Убраны все упоминания порта 8081 и VITE_WS_URL из основной документации
+
+### 4. Сетевая архитектура ✅
+
+- ✅ Backend доступен только внутри Docker сети (`http://teltel:8080`)
+- ✅ nginx proxy настроен для проксирования `/api/*` и `/ws`
+- ✅ Единая точка входа для браузера: `http://localhost:3000`
+
+---
+
+**Примечание:** Изменения в `docker-compose.yml` завершены. Для полной работоспособности системы требуется завершение Этапов 4 и 5 (миграция кода на относительные пути).
