@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,9 @@ import (
 	"runtime"
 	"strings"
 )
+
+//go:embed schema.sql
+var embeddedSchemaSQL string
 
 // SchemaManager управляет ClickHouse схемой.
 type SchemaManager struct {
@@ -47,9 +51,14 @@ func (sm *SchemaManager) InitSchema(ctx context.Context) error {
 	return nil
 }
 
-// readSchemaSQL читает schema.sql из файла.
+// readSchemaSQL читает schema.sql из файла или использует embedded версию.
 func (sm *SchemaManager) readSchemaSQL() (string, error) {
-	// Получаем путь к schema.sql относительно этого файла
+	// Сначала пытаемся использовать embedded версию (для production/Docker)
+	if embeddedSchemaSQL != "" {
+		return embeddedSchemaSQL, nil
+	}
+
+	// Fallback: получаем путь к schema.sql относительно этого файла (для dev)
 	_, filename, _, _ := runtime.Caller(0)
 	schemaPath := filepath.Join(filepath.Dir(filename), "schema.sql")
 
