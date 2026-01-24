@@ -13,6 +13,8 @@ export default defineConfig({
     port: 3000,
     proxy: {
       // Проксирование HTTP API запросов к backend
+      // В dev-режиме Vite проксирует /api/* к http://localhost:8080/api/*
+      // Обеспечивает единообразие с production (nginx proxy)
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -20,6 +22,8 @@ export default defineConfig({
         rewrite: (path) => path,
       },
       // Проксирование WebSocket подключений к backend
+      // В dev-режиме Vite проксирует /ws к ws://localhost:8080/ws
+      // Обеспечивает единообразие с production (nginx proxy)
       '/ws': {
         target: 'ws://localhost:8080',
         ws: true,
