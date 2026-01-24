@@ -17,7 +17,31 @@
 - **Опциональных файлов:** 1
 - **Файлов, уже использующих относительные пути:** 2
 
-**Следующий этап:** Проектирование nginx proxy конфигурации
+---
+
+### Этап 2: Проектирование и применение nginx proxy конфигурации ✅ ЗАВЕРШЁН
+
+- [x] **Проектирование nginx proxy конфигурации**
+  - Спроектированы location blocks для `/api/*` и `/ws`
+  - Настроены заголовки для proxy (Host, X-Real-IP, X-Forwarded-For)
+  - Настроен WebSocket upgrade с таймаутами
+  - Обработаны edge cases (health check, статика, SPA routing)
+  - Создан документ `NGINX_PROXY_DESIGN.md` с описанием маршрутов
+
+- [x] **Применение nginx proxy конфигурации**
+  - Обновлён `nginx.conf` с proxy настройками
+  - Добавлен proxy для `/api/*` → `http://teltel:8080/api/*`
+  - Добавлен proxy для `/ws` → `ws://teltel:8080/ws` с WebSocket upgrade
+  - Сохранены существующие location blocks (SPA routing, статика, health check)
+  - Правильный порядок location blocks (специфичные первыми)
+
+**Результаты:**
+- ✅ nginx.conf обновлён с proxy конфигурацией
+- ✅ WebSocket proxy настроен с корректными заголовками и таймаутами
+- ✅ API proxy настроен для всех `/api/*` endpoints
+- ✅ Существующие location blocks сохранены
+
+**Следующий этап:** План Docker-интеграции nginx (уже частично выполнено в docker-compose.yml)
 
 ---
 
