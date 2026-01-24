@@ -47,9 +47,9 @@ export function normalizeWebSocketUrl(url: string): string {
  */
 export function getLayoutUrl(): string | undefined {
   // Runtime конфигурация
-  if (typeof window !== 'undefined' && window.__ENV__) {
-    if (window.__ENV__.VITE_LAYOUT_URL) {
-      return window.__ENV__.VITE_LAYOUT_URL;
+  if (typeof window !== 'undefined' && (window as any).__ENV__) {
+    if ((window as any).__ENV__.VITE_LAYOUT_URL) {
+      return (window as any).__ENV__.VITE_LAYOUT_URL;
     }
   }
 
