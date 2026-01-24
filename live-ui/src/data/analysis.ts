@@ -3,7 +3,6 @@
  * Загрузка исторических данных из ClickHouse через backend API
  */
 
-import { getApiBaseUrl } from '../utils/config';
 import type { Event } from './types';
 
 /**
@@ -106,12 +105,11 @@ function parseJSONEachRow<T>(text: string): T[] {
 
 /**
  * HTTP клиент для Analysis API
+ * Использует относительные пути для работы через nginx proxy
  */
 export class AnalysisClient {
-  private baseUrl: string;
-
-  constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || getApiBaseUrl();
+  constructor() {
+    // Больше не нужен baseUrl, используем относительные пути
   }
 
   /**
@@ -129,7 +127,7 @@ export class AnalysisClient {
       queryParams.set('daysBack', params.daysBack.toString());
     }
 
-    const url = `${this.baseUrl}/api/analysis/runs${
+    const url = `/api/analysis/runs${
       queryParams.toString() ? `?${queryParams.toString()}` : ''
     }`;
 
@@ -151,7 +149,7 @@ export class AnalysisClient {
    * Получение метаданных конкретного run'а
    */
   async getRun(runId: string): Promise<RunMetadata | null> {
-    const url = `${this.baseUrl}/api/analysis/run/${encodeURIComponent(runId)}`;
+    const url = `/api/analysis/run/${encodeURIComponent(runId)}`;
 
     try {
       const response = await fetch(url);
@@ -182,7 +180,7 @@ export class AnalysisClient {
       jsonPath: params.jsonPath,
     });
 
-    const url = `${this.baseUrl}/api/analysis/series?${queryParams.toString()}`;
+    const url = `/api/analysis/series?${queryParams.toString()}`;
 
     try {
       const response = await fetch(url);
@@ -210,7 +208,7 @@ export class AnalysisClient {
       jsonPath: params.jsonPath,
     });
 
-    const url = `${this.baseUrl}/api/analysis/compare?${queryParams.toString()}`;
+    const url = `/api/analysis/compare?${queryParams.toString()}`;
 
     try {
       const response = await fetch(url);
