@@ -7,6 +7,9 @@ services:
       - "9000:9000"  # Native interface
     volumes:
       - ./data/clickhouse:/var/lib/clickhouse
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=secret
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
       interval: 10s
@@ -31,7 +34,7 @@ services:
     #   - "8081:8080"
     environment:
       - TELTEL_HTTP_PORT=8080
-      - TELTEL_CLICKHOUSE_URL=http://clickhouse:8123
+      - TELTEL_CLICKHOUSE_URL=http://default:secret@clickhouse:8123
       - TELTEL_BATCHER_ENABLED=true
       - TELTEL_BATCHER_BATCH_SIZE=10000
       - TELTEL_BATCHER_FLUSH_INTERVAL=500ms

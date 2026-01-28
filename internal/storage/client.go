@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,15 +25,50 @@ type Client interface {
 
 // HTTPClient реализует Client через HTTP API ClickHouse.
 type HTTPClient struct {
-	baseURL string
-	client  *http.Client
+	baseURL  string
+	client   *http.Client
+	username string
+	password string
 }
 
 // NewHTTPClient создаёт новый HTTP клиент для ClickHouse.
+// Поддерживает URL с базовой аутентификацией: http://user:password@host:port
 func NewHTTPClient(baseURL string) *HTTPClient {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		// Если не удалось распарсить URL, используем как есть
+		return &HTTPClient{
+			baseURL: baseURL,
+			client:  &http.Client{},
+		}
+	}
+
+	username := ""
+	password := ""
+	if u.User != nil {
+		username = u.User.Username()
+		if p, ok := u.User.Password(); ok {
+			password = p
+		}
+		// Убираем credentials из URL для безопасности
+		u.User = nil
+		baseURL = u.String()
+	}
+
 	return &HTTPClient{
-		baseURL: baseURL,
-		client:  &http.Client{},
+		baseURL:  baseURL,
+		client:   &http.Client{},
+		username: username,
+		password: password,
+	}
+}
+
+// setAuthHeader устанавливает заголовок базовой HTTP аутентификации, если указаны username/password.
+func (c *HTTPClient) setAuthHeader(req *http.Request) {
+	if c.username != "" {
+		auth := c.username + ":" + c.password
+		encoded := base64.StdEncoding.EncodeToString([]byte(auth))
+		req.Header.Set("Authorization", "Basic "+encoded)
 	}
 }
 
@@ -52,6 +88,8 @@ func (c *HTTPClient) Exec(ctx context.Context, query string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
+	c.setAuthHeader(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -86,6 +124,7 @@ func (c *HTTPClient) InsertBatch(ctx context.Context, table string, data []byte)
 	}
 
 	req.Header.Set("Content-Type", "application/x-ndjson")
+	c.setAuthHeader(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -126,6 +165,8 @@ func (c *HTTPClient) Query(ctx context.Context, query string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
+	c.setAuthHeader(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
